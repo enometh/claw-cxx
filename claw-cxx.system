@@ -1,0 +1,206 @@
+;;;
+;;;   Time-stamp: <>
+;;;   Touched: Mon Oct 22 00:22:24 2018 +0530 <enometh@meer.net>
+;;;   Bugs-To: enometh@meer.net
+;;;   Status: Experimental.  Do not redistribute
+;;;   Copyright (C) 2018 Madhu.  All Rights Reserved.
+;;;
+(in-package "CL-USER")
+
+(defvar *claw-cxx-source-dir*
+  (merge-pathnames "claw-cxx/" (translate-logical-pathname "EXTERN:")))
+(defvar *claw-cxx-binary-dir* (binary-directory *claw-cxx-source-dir*))(in-package "CL-USER")
+
+
+(mk:defsystem :iffi
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:alexandria
+	       :cffi
+	       :trivial-features)
+  :components ((:module "src"
+		:components ((:module "iffi"
+			      :components ((:file "packages")
+					   (:file "utils")
+					   (:file "function-index")
+					   (:file "iffi")))))))
+
+#+nil
+(mk:oos :iffi :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx/util
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:uiop
+	       :alexandria
+	       :cl-ppcre
+	       :local-time
+	       :named-readtables
+	       :claw-utils)
+  :components ((:module "src"
+		:components ((:module "util"
+			      :components ((:file "sha1")
+					   (:file "infix")
+					   (:file "util")))))))
+
+#+nil
+(mk:oos :claw-cxx/util :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx/spec
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:uiop
+	       :alexandria
+	       :claw-support
+	       :claw-cxx/util)
+  :components ((:module "src"
+		:components ((:module "spec"
+			      :components ((:file "entity")))))))
+
+#+nil
+(mk:oos :claw-cxx/spec :load :compile-during-load t)
+
+
+(mk:defsystem :claw-cxx/wrapper
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:uiop
+	       :alexandria
+	       :cl-ppcre
+	       :claw-cxx/util)
+  :components ((:module "src"
+		:components ((:module "wrap"
+			      :components ((:file "packages")
+					   (:file "library")
+					   (:file "wrapper")))))))
+
+#+nil
+(mk:oos :claw-cxx/wrapper :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx/resect
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:uiop
+	       :alexandria
+	       :claw-support
+	       :cl-resect
+	       :claw-cxx/util
+	       :claw-cxx/spec
+	       :claw-cxx/wrapper
+	       :parse-number)
+  :components ((:module "src"
+		:components ((:module "resect"
+			      :components ((:file "packages")
+					   (:file "util")
+					   (:file "template")
+					   (:file "inspect")
+					   (:file "macro")
+					   (:file "prepare")
+					   (:file "resect")))))))
+
+#+nil
+(mk:oos :claw-cxx/resect :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx/generator/common
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:uiop
+	       :alexandria
+	       :cffi
+	       :cl-ppcre
+	       :trivial-features
+	       :claw-cxx/util
+	       :claw-cxx/spec
+	       :float-features)
+  :components ((:module "src"
+		:components ((:module "gen"
+			      :components ((:module "common"
+					    :components ((:file "packages")
+							 (:file "util")
+							 (:file "library")
+							 (:module "generator"
+							  :components (:SERIAL
+								       (:file "type")
+								       (:file "primitive")
+								       (:file "constant")
+								       (:file "enum")
+								       (:file "function")))
+							 (:module "adapter"
+							  :components (:SERIAL
+								       (:file "adapter")
+								       (:file "dynamic")
+								       (:file "static")))))))))))
+
+#+nil
+(mk:oos :claw-cxx/generator/common :load :compile-during-load t)
+
+
+(mk:defsystem :claw-cxx/generator/cffi
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:claw-cxx/wrapper
+	       :claw-cxx/generator/common)
+  :components ((:module "src"
+		:components ((:module "gen"
+			      :components ((:module "cffi"
+					    :components ((:module "c"
+							  :components ((:file "packages")
+								       (:file "util")
+								       (:file "library")
+								       (:module generator
+									:components (:SERIAL
+										     (:file "type")
+										     (:file "typedef")
+										     (:file "record")
+										     (:file "function")))))))))))))
+
+#+nil
+(mk:oos :claw-cxx/generator/cffi :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx/generator/iffi
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:claw-cxx/wrapper
+	       :claw-cxx/generator/common
+	       :iffi)
+  :components ((:module "src"
+		:components ((:module "gen"
+			      :components ((:module "iffi"
+					    :components ((:module "cxx"
+							  :components ((:file "packages")
+								       (:file "util")
+								       (:file "library")
+								       (:module "generator"
+									:components (:SERIAL
+										     (:file "type")
+										     (:file "function")
+										     (:file "class")
+										     (:file "template")
+										     (:file "alias")
+										     (:file "variable")))))))))))))
+
+#+nil
+(mk:oos :claw-cxx/generator/iffi :load :compile-during-load t)
+
+(mk:defsystem :claw-cxx
+  :source-pathname *claw-cxx-source-dir*
+  :binary-pathname *claw-cxx-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:cffi
+	       :claw-cxx/wrapper
+	       :claw-cxx/resect
+	       :claw-cxx/generator/cffi
+	       :claw-cxx/generator/iffi)
+  :components ((:module "src"
+		:components ((:file "packages")))))
+
+#+nil
+(mk:oos :claw-cxx :load :compile-during-load t)
