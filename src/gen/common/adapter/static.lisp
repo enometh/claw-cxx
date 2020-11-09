@@ -13,7 +13,7 @@
 
 (defun load-static-adapter-template ()
   (alexandria:read-file-into-string
-   (asdf:system-relative-pathname :claw/generator/common
+   (mk::system-relative-pathname :claw-cxx/generator/common
                                   "src/gen/common/adapter/template/static.c")))
 
 
