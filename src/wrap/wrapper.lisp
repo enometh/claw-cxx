@@ -211,7 +211,7 @@
                              include-definitions
                              exclude-sources
                              exclude-definitions)
-        (let* ((system (or (first system) (when (asdf:find-system name nil) name)))
+        (let* ((system (or (first system) (when (mk:find-system name :load-or-nil) name)))
                (base-path (when base-path
                             (find-path base-path :system system)))
                (*path-mapper* (lambda (path)

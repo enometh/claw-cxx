@@ -205,9 +205,9 @@
 ;;; PATH SEARCH
 ;;;
 (defun %find-asdf-component-child (component child)
-  (or (asdf:find-component component child)
+  (or (mk::find-component component child)
       (error "Component ~S child not found: ~S"
-             (asdf:component-pathname component) child)))
+             (mk::component-source-pathname component) child)))
 
 
 (defun asdf-path (component &rest path)
@@ -215,15 +215,17 @@
       (apply #'asdf-path (%find-asdf-component-child component (first path)) (rest path))
       (etypecase (first path)
         ((or string pathname)
-         (merge-pathnames (first path) (asdf:component-pathname component)))
-        (null (asdf:component-pathname component))
+         (merge-pathnames (first path)
+			  (or (mk::component-source-pathname component)
+			      *default-pathname-defaults*)))
+        (null (mk::component-source-pathname component))
         (t (asdf-path (%find-asdf-component-child component (first path)))))))
 
 
 (defun path-or-asdf (form)
   (etypecase form
     ((or string pathname) form)
-    (list (apply #'asdf-path (asdf:find-system (first form) t) (rest form)))))
+    (list (apply #'asdf-path (mk::find-system (first form) :error) (rest form)))))
 
 
 (defun find-path (relative &key system path)
