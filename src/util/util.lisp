@@ -207,9 +207,14 @@
 ;;; PATH SEARCH
 ;;;
 (defun %find-asdf-component-child (component child)
+  #+(and asdf (not mk-defsystem))
   (or (asdf:find-component component child)
       (error "Component ~S child not found: ~S"
-             (asdf:component-pathname component) child)))
+             (asdf:component-pathname component) child))
+  #+mk-defsystem
+  (or (mk::find-component component child)
+      (error "Component ~S child not found: ~S"
+             (mk::component-source-pathname component) child)))
 
 
 (defun asdf-path (component &rest path)
@@ -217,15 +222,38 @@
       (apply #'asdf-path (%find-asdf-component-child component (first path)) (rest path))
       (etypecase (first path)
         ((or string pathname)
-         (merge-pathnames (first path) (asdf:component-pathname component)))
-        (null (asdf:component-pathname component))
+         (merge-pathnames (first path)
+			  #+(and asdf (not mk-defsystem))
+			  (asdf:component-pathname component)
+			  #+mk-defsystem
+			  (or (case (mk::component-type component)
+				((:system :defsystem :subsystem)
+				 (mk::component-root-dir component :source))
+				(otherwise
+				 (mk::component-full-pathname component :source)))
+			      *default-pathname-defaults*)
+			  nil))
+        (null #+(and asdf (not mk-defsystem))
+	      (asdf:component-pathname component)
+	      #+mk-defsystem
+	      (or (case (mk::component-type component)
+		    ((:system :defsystem :subsystem)
+		     (mk::component-root-dir component :source))
+		    (otherwise
+		     (mk::component-full-pathname component :source)))
+		  *default-pathname-defaults*))
         (t (asdf-path (%find-asdf-component-child component (first path)))))))
 
 
 (defun path-or-asdf (form)
   (etypecase form
     ((or string pathname) form)
-    (list (apply #'asdf-path (asdf:find-system (first form) t) (rest form)))))
+    (list (apply #'asdf-path (#+(and asdf (not mk-defsystem))
+				asdf:find-system
+				#+mk-defsystem
+				mk::find-system
+				(first form) :error)
+		 (rest form)))))
 
 
 (defun find-path (relative &key system path)
