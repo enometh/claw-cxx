@@ -6,4 +6,5 @@
            #:generate-wrapper
 
            #:build-adapter
-           #:initialize-adapter))
+           #:initialize-adapter
+           #:use-spec-package))
