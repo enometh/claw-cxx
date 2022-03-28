@@ -38,7 +38,9 @@
 
            #:ignore-functions
 
-           #:format-claw-timestamp-text))
+           #:format-claw-timestamp-text
+	   #:use-spec-package
+   ))
 (uiop:define-package :claw.util.infix
   (:use))
 (cl:in-package :claw.util)
@@ -709,3 +711,33 @@
         (%format-claw-timestamp-text stream)
         (with-output-to-string (stream)
           (%format-claw-timestamp-text stream)))))
+
+(defun use-spec-package (spec-package &optional (package *package*))
+  "Use all exported symbols in SPEC-PACKAGE in PACKAGE.
+Conflicts are avoided by via SHADOWING-IMPORT of any symbols which may
+conflict. Returns a list of symbols which have to be accessed
+explictly"
+  (labels ((get-exports (spec-package)
+	     (loop for sym being each external-symbol of spec-package
+		   collect (symbol-name sym)))
+	   (get-conflicts (spec-package &optional (package *package*))
+	     (loop for nam in (get-exports spec-package)
+		   for (sym status) = (multiple-value-list
+				       (find-symbol nam package))
+		   if (and sym #+nil (eql status :external))
+		   collect nam))
+	   (get-conflicts-alist (spec-package &optional (package *package*))
+	     (mapcar (lambda (pkg)
+		       (cons pkg (get-conflicts spec-package pkg)))
+		     (adjoin package (package-use-list package)))))
+    (unuse-package spec-package package)
+    (let ((conflicts-alist (get-conflicts-alist spec-package package)))
+      (shadowing-import (loop for (_pkg . conflicts) in conflicts-alist
+			      nconc (mapcar (lambda (x)
+					      (find-symbol x spec-package))
+					    conflicts))
+			package)
+      (use-package spec-package package)
+      ;; return a list of symbols that should be explicitly qualified.
+      (loop for (pkg . conflicts) in conflicts-alist
+	    nconc (mapcar (lambda (x) (find-symbol x pkg)) conflicts)))))
