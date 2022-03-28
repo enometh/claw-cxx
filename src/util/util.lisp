@@ -40,7 +40,9 @@
 
            #:ignore-functions
 
-           #:format-claw-timestamp-text))
+           #:format-claw-timestamp-text
+	   #:use-spec-package
+   ))
 (uiop:define-package :claw.util.infix
   (:use))
 (cl:in-package :claw.util)
@@ -796,3 +798,37 @@
         (%format-claw-timestamp-text stream)
         (with-output-to-string (stream)
           (%format-claw-timestamp-text stream)))))
+
+(defun use-spec-package (spec-package &optional (package *package*)
+			 &key dry-run-p)
+  "Access all exported symbols in SPEC-PACKAGE via PACKAGE.
+Conflicts are avoided by SHADOWING-IMPORT-ing the already accessible
+symbols in PACKAGE (which would conflict) first, before
+USE-PACKAGE-ing the SPEC-PACKAGE.  Returns the list of symbols which
+have to be accessed explictly (i.e. via SPEC-PACKAGE::SYM)."
+  (labels ((get-exports (spec-package)
+	     (loop for sym being each external-symbol of spec-package
+		   when (eql (symbol-package sym) spec-package)
+		   collect sym))
+	   (get-conflicts (spec-package &optional (package *package*))
+	     (loop for ext-sym in (get-exports spec-package)
+		   for nam = (symbol-name ext-sym)
+		   for (sym status) = (multiple-value-list
+				       (find-symbol nam package))
+;; ;madhu 250402 wtf was this assert about?
+;;		   do (assert (not (eql (symbol-name sym) spec-package)))
+		   if (and status (not (eql sym ext-sym)))
+		   collect sym)))
+    (setq spec-package (find-package spec-package))
+    (setq package (find-package package))
+    (unless dry-run-p
+      (unuse-package spec-package package))
+    (let ((conflicts (get-conflicts spec-package package)))
+      (unless dry-run-p
+	(shadowing-import conflicts package)
+	(use-package spec-package package))
+      (mapcar (lambda (x)
+		(let ((sym (find-symbol (symbol-name x) spec-package)))
+		  (assert (eql (symbol-package sym) spec-package))
+		  sym))
+	      conflicts))))
