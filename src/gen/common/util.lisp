@@ -106,12 +106,29 @@
     (t (c-name->lisp name :type))))
 
 
+(defvar *fix-recognition-of-pointer-to-string*  :revert
+  "
+:DEFAULT - upstream behaviour from commit 6fcffa1b44a \"Fully Unwrap Potential Character type\"
+
+:REVERT - reverts commit 6fcffa1b44a
+
+:BOHONGUANG-FIX1 - use published from bohonguag/claw commit c13d62827d
+
+:BOHONGUAG-FIX2 - fix up typo in BOHONGUAG-FIX1
+"
+
 (defun entity->iffi-type (entity &key (qualify-records *qualify-records*) ((:const-qualified const-qualified-p) nil))
   (let ((*qualify-records* qualify-records))
     (labels ((%enveloped-entity ()
                (claw.spec:foreign-enveloped-entity entity))
              (%enveloped-char-p ()
-               (let ((unwrapped (claw.spec:unwrap-foreign-entity entity)))
+               (let ((unwrapped (ecase *fix-recognition-of-pointer-to-string*
+				  (:default (claw.spec:unwrap-foreign-entity entity))
+				  (:revert (%enveloped-entity))
+				  (:bongohuang-fix1
+				   (claw.spec:unwrap-foreign-entity-1 entity))
+				  (:bongohuang-fix2
+				   (claw.spec:unwrap-foreign-entity-2 entity)))))
                  (and (typep unwrapped 'claw.spec:foreign-primitive)
                       (string= "char" (claw.spec:foreign-entity-name unwrapped)))))
              (%lisp-name ()
