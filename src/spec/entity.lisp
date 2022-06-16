@@ -112,6 +112,9 @@
            #:format-foreign-entity-c-name
 
            #:unwrap-foreign-entity
+           #:unwrap-foreign-entity-1
+           #:unwrap-foreign-entity-2
+
            #:unalias-foreign-entity
            #:unqualify-foreign-entity))
 (cl:in-package :claw.spec)
@@ -741,11 +744,27 @@
   (format-default-c-name (format-full-foreign-entity-name this) const-qualified name))
 
 
+;; upstream
 (defun unwrap-foreign-entity (entity)
   (loop for current = entity then (foreign-enveloped-entity current)
         while (foreign-envelope-p current)
         finally (return current)))
 
+;; ;; `unwrap-foreign-entity-1' from bohonguag/claw commit c13d62827d
+(defun unwrap-foreign-entity-1 (entity)
+  (loop for current = entity then (foreign-enveloped-entity current)
+        count (typep current 'foreign-pointer) into pointer-depth of-type fixnum
+        when (> pointer-depth 1)
+          return current
+        unless (foreign-envelope-p current)
+          return current))
+
+;; `unwrap-foreign-entity' from bohonguag/claw commit c13d62827d
+(defun unwrap-foreign-entity-2 (entity)
+  (loop for current = entity then unwrapped
+        for unwrapped = (unwrap-foreign-entity-1 current)
+        when (eq current unwrapped)
+          return current))
 
 (defun unqualify-foreign-entity (entity)
   (loop for current = entity then (foreign-enveloped-entity current)
