@@ -431,6 +431,8 @@
 
 (defun persist-bindings-and-asd (name opts bindings-table)
   (let ((persistent-opts (wrapper-options-persistent opts)))
+    (let ((bindings-path (persistent-options-bindings-path persistent-opts)))
+      (ensure-directories-exist bindings-path :verbose t))
     (multiple-value-bind (selected-target
                           feature-targets
                           required-systems)
