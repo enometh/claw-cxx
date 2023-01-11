@@ -36,5 +36,7 @@
 (uiop:define-package :%claw.wrapper.pristine
   (:use))
 
-(uiop:define-package :%claw.wrapper.cl
-  (:use :cl))
+;madhu 230111 defining this as :%claw.wrapper.cl makes
+; the "CL" package inaccessible in allegro 10.1
+(uiop:define-package "%CLAW.WRAPPERCL"
+  (:use #:cl))

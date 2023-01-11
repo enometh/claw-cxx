@@ -360,7 +360,7 @@
                        (prin1 `(cl:in-package ,generated-package-name) out)
                        (fresh-line out)
                        (terpri out))
-                     (let ((*package* (find-package :%claw.wrapper.cl))
+                     (let ((*package* (find-package "%CLAW.WRAPPERCL"))
                            (symbols (unexport-package-symbols (bindings-required-packages bindings))))
                        (unwind-protect
                             (progn
