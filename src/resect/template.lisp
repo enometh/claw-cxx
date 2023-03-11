@@ -13,7 +13,8 @@
 (defun extract-type-arguments (type)
   (let ((literals (extract-template-literals type))
         (args))
-    (resect:docollection (arg (%resect:type-template-arguments type))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection(arg (%resect:type-template-arguments type))
       (push (when (eq :type (%resect:template-argument-kind arg))
               (%resect:template-argument-type arg))
             args))
@@ -26,7 +27,8 @@
 
 (defun extract-decl-arguments (decl)
   (let (args)
-    (resect:docollection (arg (%resect:declaration-template-arguments decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection(arg (%resect:declaration-template-arguments decl))
       (push (ecase (%resect:template-argument-kind arg)
               ((:type :declaration :template) (%resect:template-argument-type arg))
               ((:null :null-ptr) nil)
@@ -37,7 +39,8 @@
 
 (defun extract-decl-parameters (decl)
   (let (params)
-    (resect:docollection (param (%resect:declaration-template-parameters (root-template decl)))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param (%resect:declaration-template-parameters (root-template decl)))
       (push param params))
     (nreverse params)))
 
@@ -209,7 +212,8 @@
          params
          (*template-argument-table* (make-reconstruction-table decl template-arguments)))
     (when *template-argument-table*
-      (resect:docollection (param-decl (if method-p
+      (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param-decl (if method-p
                                            (%resect:method-parameters decl)
                                            (%resect:function-parameters decl)))
         (push (reconstruct-from-type (%resect:declaration-type param-decl)) params))

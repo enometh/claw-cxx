@@ -317,7 +317,8 @@
 
 
 (defun specializationp (type)
-  (resect:docollection (template-arg (%resect:type-template-arguments type))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (template-arg (%resect:type-template-arguments type))
     (declare (ignore template-arg))
     (return-from specializationp t)))
 
@@ -393,7 +394,8 @@
   (let* ((decl-type (%resect:declaration-type decl))
          (owner (parse-owner decl))
          (value-alist))
-    (resect:docollection (decl (%resect:enum-constants decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (decl (%resect:enum-constants decl))
       (push (cons (%resect:declaration-name decl)
                   (if (%resect:enum-constant-unsigned-p decl)
                       (%resect:enum-constant-unsigned-value decl)
@@ -496,7 +498,8 @@
 
 (defun collect-entity-parameters (decl)
   (let (params)
-    (resect:docollection (param-decl (%resect:declaration-template-parameters decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param-decl (%resect:declaration-template-parameters decl))
       (push (parse-declaration (%resect:declaration-kind param-decl) param-decl :inject-arguments nil)
             params))
     (nreverse params)))
@@ -529,7 +532,8 @@
 (defun extract-function-template-arguments (decl)
   (let (template-arguments)
     ;; template-arguments
-    (resect:docollection (arg (%resect:declaration-template-arguments decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (arg (%resect:declaration-template-arguments decl))
       (push arg template-arguments))
     (nreversef template-arguments)
 
@@ -635,11 +639,13 @@
         destructor-found
         constructor-found
         pure-virtual-found)
-    (resect:docollection (method-decl (%resect:record-methods record-decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (method-decl (%resect:record-methods record-decl))
       (when (and (not pure-virtual-found)
                  (%resect:method-pure-virtual-p method-decl))
         (setf pure-virtual-found t)))
-    (resect:docollection (method-decl (%resect:record-methods record-decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (method-decl (%resect:record-methods record-decl))
       (let* ((deleted-p (search "= delete" (%resect:declaration-source method-decl)))
              (pure-method-name (remove-template-argument-string
                                 (%resect:declaration-name method-decl)))
@@ -704,7 +710,8 @@
 
 
 (defun method-exists-p (decl)
-  (resect:docollection (method-decl (%resect:record-methods decl))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (method-decl (%resect:record-methods decl))
     (declare (ignore method-decl))
     (return-from method-exists-p t)))
 
@@ -731,7 +738,8 @@
 (defun parse-fields (entity decl)
   (let ((*current-owner* entity)
         fields)
-    (resect:docollection (field-decl (%resect:type-fields (%resect:declaration-type decl)))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (field-decl (%resect:type-fields (%resect:declaration-type decl)))
       (when (publicp field-decl)
         (let ((field-type (%resect:declaration-type field-decl)))
           (push (make-instance 'foreign-record-field
@@ -754,7 +762,8 @@
 (defun parse-new-record-declaration (record-kind decl)
   (labels ((collect-parents ()
              (let (parents)
-               (resect:docollection (parent-type (%resect:record-parents decl))
+               (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (parent-type (%resect:record-parents decl))
                  (push (parse-type-by-category parent-type) parents))
                (nreverse parents))))
     (let ((owner (parse-owner decl)))
@@ -846,7 +855,8 @@
   (let (params
         parsed-param-names
         (repeat-idx 0))
-    (resect:docollection (param parameters)
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param parameters)
       (let ((name (unless-empty (%resect:declaration-name param)))
             (param-type (%resect:declaration-type param)))
         (when name
@@ -970,7 +980,8 @@
 (defmethod parse-type (category (kind (eql :function-prototype)) type)
   (declare (ignorable category kind))
   (let (params)
-    (resect:docollection (param-type (%resect:function-proto-parameters type))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param-type (%resect:function-proto-parameters type))
       (push (make-instance 'foreign-parameter
                            :enveloped (parse-type-by-category param-type))
 
