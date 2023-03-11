@@ -157,7 +157,8 @@
 
 (defun template-arguments-public-p (decl)
   (let ((public-p t))
-    (resect:docollection (arg (%resect:type-template-arguments (%resect:declaration-type decl)))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (arg (%resect:type-template-arguments (%resect:declaration-type decl)))
       (when (eq :type (%resect:template-argument-kind arg))
         (let ((arg-type-decl (%resect:type-declaration (%resect:template-argument-type arg))))
           (when (and (not (cffi:null-pointer-p arg-type-decl))
@@ -179,16 +180,20 @@
      (gethash (%resect:declaration-id decl) *instantiated-classes*)
      (prepare-instantiated-source *inspector* decl)))
 
-  (resect:docollection (parent-type (%resect:record-parents decl))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection  (parent-type (%resect:record-parents decl))
     (prepare-type parent-type))
 
-  (resect:docollection (field-decl (%resect:record-fields decl))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (field-decl (%resect:record-fields decl))
     (prepare-type (%resect:declaration-type field-decl)))
 
-  (resect:docollection (method-decl (%resect:record-methods decl))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (method-decl (%resect:record-methods decl))
     (register-function-if-instantiable method-decl)
     (prepare-type (%resect:method-result-type method-decl))
-    (resect:docollection (param-decl (%resect:method-parameters method-decl))
+    (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param-decl (%resect:method-parameters method-decl))
       (prepare-type (%resect:declaration-type param-decl)))))
 
 
@@ -216,7 +221,8 @@
 (defmethod prepare-declaration ((kind (eql :function)) declaration &key)
   (register-function-if-instantiable declaration)
   (prepare-type (%resect:function-result-type declaration))
-  (resect:docollection (param-decl (%resect:function-parameters declaration))
+  (#-allegro resect:docollection
+	       #+allegro cl-resect:docollection (param-decl (%resect:function-parameters declaration))
     (prepare-type (%resect:declaration-type param-decl))))
 
 

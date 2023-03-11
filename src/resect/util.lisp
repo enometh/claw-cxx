@@ -40,7 +40,8 @@
           ;; hack to extract mangled name from parameter: libclang doesn't mangle some
           ;; names properly (extern "C++"?)
           ;; it can also be empty due to decl being uninstantiated function, i guess
-          (resect:docollection (param-decl (if (eq :function (%resect:declaration-kind decl))
+          (#+allegro cl-resect:docollection
+		 #-allegro resect:docollection (param-decl (if (eq :function (%resect:declaration-kind decl))
                                                (%resect:function-parameters decl)
                                                (%resect:method-parameters decl)))
             (let ((param-name (%resect:declaration-name param-decl))
