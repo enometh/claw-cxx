@@ -416,7 +416,24 @@
                        collect `(:file ,(namestring (merge-pathnames target enough-bindings-path))
                                  :if-feature ,features))
                  out)
-          (format out ")")
+	  (format out "~&   (:module \"lib\"~%    :components~&    ")
+	  (prin1 (loop for (features . target) in (reverse feature-targets)
+                       collect `(:file ;;; XXX NEED TO GET THIS FROM CONFIGURATION
+				 ,(let ((p "adapter.c"))
+				    (concatenate 'string
+						 (pathname-name p)
+						 "."
+						 target
+						 "."
+						 (pathname-type p)))
+                                 :if-feature ,features
+				 :language :claw-cxx-adapter
+				 :compiler-options (:cflags "-O0 -g3"
+						    :ldflags "-Wl,-O1  -Wl,--as-needed")
+				 ))
+                 out)
+          (format out "))")
+
           ;; Add warning for unsupported platforms
           (let ((*print-pretty* nil))
             (format out "~%#-(:or ")
