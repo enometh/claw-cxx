@@ -374,6 +374,7 @@
     (values selected-target feature-targets required-systems)))
 
 
+;; TODO - modify this for mk-defsystem
 (defun persist-bindings-asd (name persistent-opts feature-targets required-systems)
   (let* ((bindings-system (persistent-options-bindings-system persistent-opts))
          (bindings-path (persistent-options-bindings-path persistent-opts))

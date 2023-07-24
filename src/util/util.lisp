@@ -772,4 +772,3 @@ explictly"
       (loop for (pkg . conflicts) in conflicts-alist
 	    nconc (mapcar (lambda (x) (find-symbol x pkg)) conflicts)))))
 
-

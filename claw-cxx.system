@@ -43,7 +43,9 @@
 		:components ((:module "util"
 			      :components ((:file "sha1")
 					   (:file "infix")
-					   (:file "util")))))))
+					   (:file "util")
+					   (:file "mk-defsystem-hooks")
+					   ))))))
 
 #+nil
 (mk:oos :claw-cxx/util :load :compile-during-load t)
