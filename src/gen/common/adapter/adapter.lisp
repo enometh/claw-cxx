@@ -96,7 +96,7 @@
 
 
 (defun %make-function-type-name (function)
-  (format nil "~A_t" (adapted-function-name function)))
+  (format nil "~A__t" (adapted-function-name function)))
 
 
 (defun %generate-function-type (function out)
