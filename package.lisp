@@ -1,3 +1,3 @@
-(in-package "CL-USER")
-(defpackage "CL-CLAW-MUPDF"
+(cl:in-package "CL-USER")
+(cl:defpackage "CL-CLAW-MUPDF"
   (:use "CL"))

@@ -6,6 +6,8 @@
 ;;;   Status: Experimental.  Do not redistribute
 ;;;   Copyright (C) 2023 Madhu.  All Rights Reserved.
 ;;;
+;;; Bindings
+;;;
 (in-package "CL-USER")
 
 (defvar *cl-claw-mupdf-source-dir*
@@ -16,9 +18,24 @@
   :source-pathname *cl-claw-mupdf-source-dir*
   :binary-pathname *cl-claw-mupdf-binary-dir*
   :source-extension "lisp"
-  :components (
-	       "package"
-               ))
+  :depends-on ("uiop" "cffi")
+  :components ((:module "gen"
+		:components
+		((:module "bindings"
+		  :components
+		  ((:file "x86_64-pc-linux-gnu"
+		    :if-feature
+		    (:and :x86-64 :linux))
+		   (:file "i686-pc-linux-gnu"
+		    :if-feature (:and :x86 :linux))))
+		 (:module "lib"
+		  :components
+		  ((:file "adapter.x86_64-pc-linux-gnu"
+		    :source-extension "c"
+		    :if-feature (:and :x86-64 :linux)
+		    :language :claw-cxx-adapter
+		    :compiler-options (:cflags "-O0 -g3 -I/14/build/mupdf/include"
+				       :ldflags "-Wl,-O1 -Wl,--as-needed /tmp/mupdf/libmupdf.so"))))))))
 
 #+nil
 (mk:oos :cl-claw-mupdf :load :compile-during-load t)
