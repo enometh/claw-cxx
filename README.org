@@ -6,7 +6,8 @@ Generate and use mupdf bindings with borodust `claw'.
 **** claw, libresect
 This uses the mk-defsystem based claw-cxx branch in
 https://github.com/enometh/claw-cxx and libresect.so produced from
-https://github.com/enometh/libresect
+https://github.com/enometh/enometh-overlay/tree/main/dev-lisp/libresect
+
 **** mupdf
 obtain and compile mupdf-1.23.6 from https://mupdf.com under
 /14/build/mupdf. Edit Makerules to pass LIB_CFLAGS -fPIC for the
@@ -64,4 +65,100 @@ claw wrapper
 (mk:oos :cl-claw-mupdf :load)
 (list claw-cxx-mupdf::+fz-version+)
 #+end_src
+
+*** Example: Rotate
+To rotate a pdf by 90 degrees we can just use mudraw
+#+begin_src shell
+mutool draw -R 90  -o /dev/shm/2.pdf /dev/shm/1.pdf 10
+#+end_src
+but here we do what pymupdf does to rotate a page
+
+#+begin_src lisp
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(require 'claw-cxx/util)
+(user::find-packages-matching "CLAW")
+(defpackage "CL-CLAW-MUPDF" (:use "CL"))
+(in-package "CL-CLAW-MUPDF")
+(setq $conflicts
+      (claw.util:use-spec-package "CLAW-CXX-MUPDF"  "CL-CLAW-MUPDF"))
+
+,#+nil
+(FILE-LENGTH MAX T REM CLOSE NUMBER PI STRING COUNT ABS OPEN TYPE FORMAT WRITE
+ TAILP LIST RANDOM LENGTH EVAL REMOVE PRINT ERROR FUNCTION WARN TRUNCATE ABORT
+ COMMON-LISP:FILE-LENGTH COMMON-LISP:MAX COMMON-LISP:T COMMON-LISP:REM
+ COMMON-LISP:CLOSE COMMON-LISP:NUMBER COMMON-LISP:PI COMMON-LISP:STRING
+ COMMON-LISP:COUNT COMMON-LISP:ABS COMMON-LISP:OPEN COMMON-LISP:TYPE
+ COMMON-LISP:FORMAT COMMON-LISP:WRITE COMMON-LISP:TAILP COMMON-LISP:LIST
+ COMMON-LISP:RANDOM COMMON-LISP:LENGTH COMMON-LISP:EVAL COMMON-LISP:REMOVE
+ COMMON-LISP:PRINT COMMON-LISP:ERROR COMMON-LISP:FUNCTION COMMON-LISP:WARN
+ COMMON-LISP:TRUNCATE COMMON-LISP:ABORT)
+
+(defvar $ctx (fz-new-context-imp (cffi:null-pointer)
+				 (cffi:null-pointer)
+				 +fz-store-default+
+				 +fz-version+))
+
+(fz-register-document-handler $ctx
+			      (cffi::foreign-symbol-pointer "pdf_document_handler"))
+
+(defun pdf-name (name)
+  (cffi:make-pointer
+   (symbol-value (find-symbol (cl:format nil "+PDF-ENUM-NAME-~@:(~a~)+" name)
+			      "CLAW-CXX-MUPDF"))))
+
+(defun jm-norm-rotation (rotate)
+  "Return one of 0, 90, 180, 270."
+  (loop while (< rotate 0) do (incf rotate 360))
+  (loop while (>= rotate 360) do (decf rotate 360))
+  (multiple-value-bind (n d) (cl:truncate rotate 90)
+    (declare (ignore n))
+    (if (zerop d)
+	rotate
+	0)))
+
+(defun jm-page-rotation (ctx pdf-page)
+  (jm-norm-rotation
+   (pdf-to-int ctx (pdf-dict-get-inheritable
+		    ctx
+		    (cffi:foreign-slot-value pdf-page 'pdf-page 'obj)
+		    (pdf-name 'rotate)))))
+
+(defun jm-norm-rotation (rotate)
+  "Return one of 0, 90, 180, 270."
+  (loop while (< rotate 0) do (incf rotate 360))
+  (loop while (>= rotate 360) do (decf rotate 360))
+  (multiple-value-bind (n d) (cl:truncate rotate 90)
+    (declare (ignore n))
+    (if (zerop d)
+	rotate
+	0)))
+
+(defun set-rotation (ctx fz-page rotation)
+  (let* ((pdf-page (pdf-page-from-fz-page ctx fz-page))
+	 (dict (cffi:foreign-slot-value pdf-page 'pdf-page 'obj)))
+    (pdf-dict-put-int ctx dict (pdf-name 'rotate)
+		      (jm-norm-rotation rotation))))
+
+(defun rotate (ctx doc)
+  (loop for i below (fz-count-pages ctx doc)
+	for page = (fz-load-page ctx doc i)
+	do (set-rotation ctx page 90)
+	(fz-drop-page ctx page)))
+#||
+(defvar $doc (fz-open-document $ctx "/dev/shm/1.pdf"))
+(rotate $ctx $doc)
+(pdf-save-document $ctx $doc "/dev/shm/2.pdf" (cffi:null-pointer))
+(fz-drop-document $ctx $doc)
+
+#+nil
+(progn
+(defvar $page (fz-load-page $ctx $doc 1))
+(defvar $pdf-page (pdf-page-from-fz-page $ctx $page))
+(cffi:foreign-slot-value $pdf-page 'pdf-page 'obj)
+(pdf-is-name $ctx (pdf-name 'rotate))
+(pdf-is-string $ctx (pdf-name 'rotate))
+(jm-page-rotation $ctx $pdf-page))
+||#
+#+end_src
+
 
