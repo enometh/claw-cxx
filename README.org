@@ -1,1 +1,67 @@
+#+PROPERTY: header-args :results silent raw drawer
 * cl-claw-mupdf
+Generate and use mupdf bindings with borodust `claw'.
+
+*** Prereqs
+**** claw, libresect
+This uses the mk-defsystem based claw-cxx branch in
+https://github.com/enometh/claw-cxx and libresect.so produced from
+https://github.com/enometh/libresect
+**** mupdf
+obtain and compile mupdf-1.23.6 from https://mupdf.com under
+/14/build/mupdf. Edit Makerules to pass LIB_CFLAGS -fPIC for the
+static build, and convert it to a shared archive under /tmp
+#+begin_src shell
+gcc -Wl,--whole-archive /14/build/mupdf/build/debug/libmupdf.a \
+    /14/build/mupdf/build/debug/libmupdf-third.a \
+ -Wl,--no-whole-archive -shared -o /tmp/mupdf/libmupdf.so
+#+end_src
+
+*** Manifest
+**** package.lisp:
+defines  "CL-CLAW-MUPDF" which is our "user" package
+**** cl-claw-mupdf.system
+defsystem to load bindings
+**** claw-cxx-mupdf.system
+defystem for the wrapper
+**** wrapper.lisp
+claw wrapper
+
+*** Steps
+**** generate bindings
+#+begin_src lisp
+(in-package "CL-USER")
+(progn
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(require 'claw-cxx))
+;; target
+(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
+;; needs the above for directory locations
+(load "~/cl/extern/cl-claw-mupdf/claw-cxx-mupdf.system")
+
+(mk:oos :claw-cxx-mupdf :load)
+(cffi:load-foreign-library "libresect.so")
+
+;; to force the generatation of bindings gen/bindings/x86_64-pc-linux-gnu.lisp
+;; and shared library files
+,#+nil
+(claw:generate-wrapper :claw-cxx-mupdf)
+
+;; load generated bindings (generating them if not present)
+(claw:load-wrapper :claw-cxx-mupdf)
+#+end_src
+
+
+**** load cl-claw-mupdf without loading claw
+#+begin_src lisp
+(in-package "CL-USER")
+(require 'uiop)
+(require 'cffi)
+(load "~/cl/extern/claw-cxx/src/util/mk-defsystem-hooks.lisp")
+(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
+(mk::find-language :claw-cxx-adapter)
+(setq CLAW-MK-DEFSYSTEM-ADAPTER::+compiler+ "gcc")
+(mk:oos :cl-claw-mupdf :load)
+(list claw-cxx-mupdf::+fz-version+)
+#+end_src
+

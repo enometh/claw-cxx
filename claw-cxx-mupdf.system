@@ -1,0 +1,28 @@
+;;; -*- Mode: LISP; Package: :cl-user; BASE: 10; Syntax: ANSI-Common-Lisp; -*-
+;;;
+;;;   Time-stamp: <>
+;;;   Touched: Wed Nov 22 07:13:42 2023 +0530 <enometh@net.meer>
+;;;   Bugs-To: enometh@net.meer
+;;;   Status: Experimental.  Do not redistribute
+;;;   Copyright (C) 2023 Madhu.  All Rights Reserved.
+;;;
+;;; Claw Wrapper. Note This is in the same location as `cl-claw-mupdf'
+;;;
+(in-package "CL-USER")
+
+;; thes should be identical to cl-claw-mupdf.sysem
+(defvar *cl-claw-mupdf-source-dir*
+  (merge-pathnames "cl-claw-mupdf/" (translate-logical-pathname "EXTERN:")))
+(defvar *cl-claw-mupdf-binary-dir* (binary-directory *cl-claw-mupdf-source-dir*))
+
+(mk:defsystem :claw-cxx-mupdf
+   :source-pathname *cl-claw-mupdf-source-dir*
+   :binary-pathname *cl-claw-mupdf-binary-dir*
+   :source-extension "lisp"
+   :components (
+		"package"
+		"wrapper"
+               ))
+
+#+nil
+(mk:oos :claw-cxx-mupdf :load :compile-during-load t)
