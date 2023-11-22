@@ -27,6 +27,11 @@ defsystem to load bindings
 defystem for the wrapper
 **** wrapper.lisp
 claw wrapper
+**** cl-claw-mupdf-user.system
+defsystem to load the already generated files and libraries and set up
+our user package (in a fresh lisp without loading all of claw-cxx)
+**** use-package.lisp
+set up our user package, set up ~$conflicts~
 
 *** Steps
 **** generate bindings
@@ -92,6 +97,9 @@ but here we do what pymupdf does to rotate a page
  COMMON-LISP:RANDOM COMMON-LISP:LENGTH COMMON-LISP:EVAL COMMON-LISP:REMOVE
  COMMON-LISP:PRINT COMMON-LISP:ERROR COMMON-LISP:FUNCTION COMMON-LISP:WARN
  COMMON-LISP:TRUNCATE COMMON-LISP:ABORT)
+
+;; the steps above which set up "CL-CLAW-MUPDF" package could also be
+;; achieved by loading the cl-claw-mupdf-user system.
 
 (defvar $ctx (fz-new-context-imp (cffi:null-pointer)
 				 (cffi:null-pointer)
