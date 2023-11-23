@@ -12,6 +12,8 @@ https://github.com/enometh/enometh-overlay/tree/main/dev-lisp/libresect
 obtain and compile mupdf-1.23.6 from https://mupdf.com under
 /14/build/mupdf. Edit Makerules to pass LIB_CFLAGS -fPIC for the
 static build, and convert it to a shared archive under /tmp
+
+for notes on to dump an ocr enabled libmupdf see [[REFME1][below]]
 #+begin_src shell
 gcc -Wl,--whole-archive /14/build/mupdf/build/debug/libmupdf.a \
     /14/build/mupdf/build/debug/libmupdf-third.a \
@@ -169,4 +171,40 @@ but here we do what pymupdf does to rotate a page
 ||#
 #+end_src
 
+* Example 2 OCR
+** relink libmupdf.so
+**** build an ocr capable libmupdf.so (for k2pdfopt)
+build and install custom versions of leptonica and tesseract versions
+under root /7/gtk/k2pdfopt_v2.54/image. build mupdf with tesseract and
+leptonica pointing to this root.
+<<REFME1>>
+#+begin_src shell
+export PKG_CONFIG_PATH=/7/gtk/k2pdfopt_v2.54/image/usr/lib64/pkgconfig/
+export CCACHE_DIR=/dev/shm/ccache  PATH=/usr/lib/ccache/bin:$PATH
+#(cd /14/build/mupdf;  make shared=yes USE_SYSTEM_LEPTONICA=yes USE_SYSTEM_TESSERACT=yes  tesseract=yes leptopnica=yes USE_TESSERACT=yes)
+pkg-config --cflags --libs lept tesseract
+#+end_src
+remember to link this with g++
+#+begin_src shell
+g++ -Wl,--whole-archive \
+ /14/build/mupdf/build/debug-tesseract/libmupdf.a \
+ /14/build/mupdf/build/debug-tesseract/libmupdf-third.a \
+ -Wl,--no-whole-archive -shared -o /tmp/mupdf/libmupdf.so \
+ /7/gtk/k2pdfopt_v2.54/image/usr/lib64/libleptonica.so \
+ /7/gtk/k2pdfopt_v2.54/image/usr/lib64/libtesseract.so \
+ -Wl,-rpath,/7/gtk/k2pdfopt_v2.54/image/usr/lib64 \
+ -larchive -lcurl
+ldd /tmp/mupdf/libmupdf.so | grep image
+#+end_src
+
+#+begin_src lisp
+(progn
+(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
+(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf-user.system"))
+(mk:oos :cl-claw-mupdf-user :load)
+(in-package "CL-CLAW-MUPDF")
+(cffi:foreign-symbol-pointer "fz_pdfocr_write_options_usage")
+(cffi:foreign-string-to-lisp (cffi:mem-ref  (cffi:foreign-symbol-pointer "fz_pdfocr_write_options_usage") :pointer))
+#+end_src
 
