@@ -40,6 +40,7 @@
 
            #:format-claw-timestamp-text
 	   #:use-spec-package
+           #:claw-cxx-defsystem
    ))
 (uiop:define-package :claw.util.infix
   (:use))
@@ -772,3 +773,33 @@ explictly"
       (loop for (pkg . conflicts) in conflicts-alist
 	    nconc (mapcar (lambda (x) (find-symbol x pkg)) conflicts)))))
 
+;; claw:generate-wrapper generates a bogus asd, but we presently cough
+;; up a defsystem by hand.  wrap up the boilerplate for x86 systems in
+;; claw-cxx-defwrapper.
+
+(defmacro claw-cxx-defsystem (name &key source-pathname binary-pathname
+			      (generate-adapter-p t))
+  `(mk:defsystem ,name
+     :source-pathname ,source-pathname
+     :binary-pathname ,binary-pathname
+     :source-extension "lisp"
+     :depends-on ("uiop" "cffi"  "claw-cxx/util")
+     :components ((:module "gen"
+		   :components
+		   ((:module "bindings"
+		     :components
+		     ((:file "x86_64-pc-linux-gnu"
+		       :if-feature
+		       (:and :x86-64 :linux))
+		      (:file "i686-pc-linux-gnu"
+		       :if-feature (:and :x86 :linux))))
+		    ,@(and generate-adapter-p
+			   '((:module "lib"
+			      :components
+			      ((:file "adapter.x86_64-pc-linux-gnu"
+				:source-extension "c"
+				:if-feature (:and :x86-64 :linux)
+				:language :claw-cxx-adapter
+				:compiler-options (:cflags "-O0 -g3"
+						   :ldflags "-Wl,-O1 -Wl,--as-needed"
+						   )))))))))))

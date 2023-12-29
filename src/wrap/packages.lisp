@@ -30,7 +30,10 @@
 
            #:describe-foreign-library
            #:foreign-library-entities
-           #:foreign-library-language))
+           #:foreign-library-language
+
+           #:claw-cxx-defwrapper
+   ))
 
 
 (uiop:define-package :%claw.wrapper.pristine

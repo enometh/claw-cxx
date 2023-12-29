@@ -374,7 +374,7 @@
     (values selected-target feature-targets required-systems)))
 
 
-;; TODO - modify this for mk-defsystem
+;; TODO - modify this for mk-defsystem. (see claw.util:claw-cxx-defsystem)
 (defun persist-bindings-asd (name persistent-opts feature-targets required-systems)
   (let* ((bindings-system (persistent-options-bindings-system persistent-opts))
          (bindings-path (persistent-options-bindings-path persistent-opts))
@@ -520,3 +520,25 @@
                     (:persistent nil))
          :in-package ,in-package)
        (load-wrapper ,name))))
+
+
+;; convenience macro that wraps up the x86 target boilerplate
+(defmacro claw-cxx-defwrapper (name &key package base-path spec-path headers system-includes includes
+			       (generate-adapter-p t))
+  `(defwrapper (,name
+		(:system ,name)
+		(:base-path ,base-path)
+		(:headers ,@headers)
+		(:includes ,@includes)
+		(:system-includes ,@system-includes)
+		(:targets
+		 ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
+		 ((:and :x86 :linux) "i686-pc-linux-gnu"))
+		(:include-definitions ".")
+		(:spec-path ,spec-path))
+     :in-package ,package
+     :trim-enum-prefix nil
+     :recognize-bitfields t
+     :recognize-strings t
+     ,@(and generate-adapter-p
+	    '(:with-adapter (:dynamic :path "lib/adapter.c")))))
