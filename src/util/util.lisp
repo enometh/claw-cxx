@@ -40,6 +40,8 @@
 
            #:format-claw-timestamp-text
 	   #:use-spec-package
+           #:make-compiler-option #:make-compiler-options
+           #:claw-cxx-defsystems
    ))
 (uiop:define-package :claw.util.infix
   (:use))
@@ -791,3 +793,217 @@ have to be accessed explictly (i.e. via SPEC-PACKAGE::SYM)."
 		  (assert (eql (symbol-package sym) spec-package))
 		  sym))
 	      conflicts))))
+
+;; claw:generate-wrapper generates a bogus asd but we presently cough
+;; up defsystems "by hand". see claw-cxx-defsystems.
+
+;;  1. wrap up the bindings boilerplate for x86 systems used in
+;;  claw-cxx-defwrapper
+
+;; all MAKE-* functions return lisp forms.
+
+(defun make-bindings-module ()
+  `(:module "bindings"
+    :components
+    ((:file "x86_64-pc-linux-gnu"
+      :if-feature
+      (:and :x86-64 :linux))
+     (:file "i686-pc-linux-gnu"
+      :if-feature (:and :x86 :linux)))))
+
+
+;; handle `compiler-options' for the `:claw-cxx-adapter' language.
+
+;; default compiler-options: these can be a string or a list of
+;; strings. the user can define these in his own package and supply
+;; them to make-compiler-options with the corresponding keywords.  the
+;; defaults here are used by make-compiler-options if not overridden.
+
+(defvar $default-cflags '("-00"  "-gddb"))
+(defvar $default-ldflags '("-Wl,-O1 -Wl,--as-needed" "-ldl"))
+(defvar $system-includes-paths nil)
+(defvar $includes-paths nil)
+(defvar $link-libs nil)
+(defvar $link-libs-paths nil)
+
+;; some ob utils that belong elsewhere
+(defun ensure-list-args (x)
+  (cond ((consp x)
+	 (cond ((and (endp (cdr x))
+		     (consp (car x)))
+		;; fudge (&rest args) with (&optional args)
+		(car x))
+	       ((null (car x)) nil)
+	       (t x)))
+	((null x) nil)
+	(t (list x))))
+
+(defun ensure-string-args (x)
+  (if (stringp x)
+      x
+      (format nil "~{~A~^ ~}" (ensure-list-args x))))
+
+(defun make-compiler-option (switch &rest values)
+  (let ((args (ensure-list-args values)))
+    (when args
+      (let ((fmt (format nil  "~~{~A ~~A~~^ ~~}" switch)))
+	(format nil fmt args)))))
+
+#||
+(let (($system-includes-paths '("/usr/local/include" "/tmp/include")))
+  (make-compiler-option "-isystem" $system-includes-paths))
+(make-compiler-option "-L" "/debian/usr/lib/x86_64-linux-gnu/")
+(user::map-concatenate
+		  'string 'identity
+	 (list nil nil nil)
+	 " ")
+(defvar $bar 'bar)
+(defun foo (&key ((:bar $bar) $bar)) $bar)
+(foo)
+(foo :bar 'barf)
+(make-compiler-options)
+||#
+
+(defun make-compiler-options
+    (&key
+     ((:default-cflags $default-cflags) $default-cflags)
+     ((:system-includes-paths $system-includes-paths) $system-includes-paths)
+     ((:default-ldflags $default-ldflags) $default-ldflags)
+     ((:link-libs $link-libs) $link-libs)
+     ((:link-libs-paths $link-libs-paths) $link-libs-paths)
+     ((:include-paths $includes-paths) $includes-paths))
+  "This returns a list (:cflags \"cflags-string\" :ldflags
+\"ldflags-string\") which can be supplied as the `:compiler-options'
+property to the `:claw-cxx-adapter' language :file defsystem component."
+  (list :cflags (user::map-concatenate
+		 'string 'identity
+		 (delete nil
+			 (list (ensure-string-args $default-cflags)
+			       (make-compiler-option
+				"-isystem" $system-includes-paths)
+			       (make-compiler-option "-I" $includes-paths)))
+		 " ")
+	:ldflags (user::map-concatenate
+		  'string 'identity
+		  (delete nil
+			  (list (ensure-string-args $default-ldflags)
+				(make-compiler-option "-l" $link-libs)
+				(make-compiler-option "-L" $link-libs-paths)))
+		  " ")))
+
+;;  2. wrap up the c-adapter boilerplate for x86 systems used in
+;;  claw-cxx-defwrapper.
+
+(defun make-adapter-module (&optional compiler-options)
+  `(:module "lib"
+    :components
+    ((:file "adapter.x86_64-pc-linux-gnu"
+      :source-extension "c"
+      :if-feature (:and :x86-64 :linux)
+      :language :claw-cxx-adapter
+      :compiler-options
+      ,@(if compiler-options
+	    `(,compiler-options)
+	    `(,(make-compiler-options)))))))
+
+(defun make-defsystem-boiler
+    (name &key source-pathname binary-pathname depends-on
+     (source-extension "lisp")
+     components)
+  `(mk:defsystem ,name
+     ,@(and source-pathname `(:source-pathname ,source-pathname))
+     ,@(and binary-pathname `(:binary-pathname ,binary-pathname))
+     ,@(and source-extension `(:source-extension ,source-extension))
+     ,@(and depends-on `(:depends-on ,depends-on))
+     ,@(and components `(:components ,components))))
+
+;; wrap up the boilerplates to generate separate systems 1) for the
+;; generated bindings and 2) for the dll. override the location for
+;; the object files generated when compiling the shared object with
+;; :dll-pathname
+
+(defun make-defsystems (name &key source-pathname binary-pathname
+			dll-pathname
+			compiler-options
+			(generate-adapter-p t))
+  (let* ((system-name (string-downcase name))
+	 (dll-system-name (concatenate 'string system-name ".library"))
+	 (bindings-system-name (concatenate 'string system-name ".bindings")))
+    `(progn
+       ,(make-defsystem-boiler
+	 bindings-system-name
+	 :source-pathname source-pathname
+	 :binary-pathname binary-pathname
+	 :source-extension "lisp"
+	 :depends-on '("uiop" "cffi")
+	 :components `((:module "gen"
+			:components
+			(,(make-bindings-module)))))
+       ,@(and generate-adapter-p
+	      `(,(make-defsystem-boiler
+	       dll-system-name
+	       :source-pathname source-pathname
+	       :binary-pathname (or dll-pathname binary-pathname)
+	       :source-extension "lisp"
+	       :depends-on '("uiop" "cffi")
+	       :components
+	       `((:module "gen"
+		  :components (,(make-adapter-module
+				 compiler-options))))))))))
+
+(defvar $claw-cxx-defsystems-source-form nil
+  "Remember source form of the last call to `claw-cxx-defsystems'")
+
+(defmacro claw-cxx-defsystems (name &key source-pathname binary-pathname
+			       dll-pathname
+			       compiler-options
+			       (generate-adapter-p t))
+  "CLAW-CXX-DEFSYSTEMS defines the XXX.bindings and
+XXX.library system defititions which can be used independently of
+claw.  These are used to compile and load the generated lisp and the
+generated c-adapter bindings that are created by claw-wrapper.  The
+adapter is generated only if generate-adapter-p was supplied.
+
+NOte that compiling the adapter sources to a sharedlib via MK:OOS and
+loading the shared lib via MK:OOS requires CLAW-CXX/UTIL system to be
+loaded first.
+
+The most recently defined source forms defined by this macro can be
+retrieved with LAST-BINDINGS-SOURCE and LAST-LIBRARY-SOURCE.  The last
+caller can use these to persist the defsystem definitions to disk if
+he so desires."
+  (setq $claw-cxx-defsystems-source-form
+	(make-defsystems name :source-pathname source-pathname
+			 :binary-pathname binary-pathname
+			 :dll-pathname dll-pathname
+			 :compiler-options compiler-options
+			 :generate-adapter-p generate-adapter-p)))
+
+(defun last-bindings-source ()
+  "Return the (mk:defsystem xxx.bindings ...) source form which was defined by the last call to claw-cxx-defsystems."
+  (cadr $claw-cxx-defsystems-source-form))
+
+(defun last-library-source ()
+  "Return the (mk:defsystem xxx.library ...) source form which was defined by the last call to claw-cxx-defsystems. if it exists."
+  (caddr $claw-cxx-defsystems-source-form))
+
+;; claw-cxx-defsystem is now bogus, useless and unexported. it does
+;; not allow the dll dest path to be shared between different lisp
+;; compilers. the adapters may need to be compiled before the bindings
+;; can be loaded which is a chicken and egg problem. besides the user
+;; surely wants to use the name of this system for the some other
+;; system which generates the bindings and adapters.
+
+(defmacro claw-cxx-defsystem (name &key source-pathname binary-pathname
+			      compiler-options (generate-adapter-p t))
+  (make-defsystem-boiler
+   name
+   :source-pathname source-pathname
+   :binary-pathname binary-pathname
+   :source-extension "lisp"
+   :depends-on '("uiop" "cffi"  "claw-cxx/util")
+   :components `((:module "gen"
+		  :components
+		  (,(make-bindings-module)
+		    ,@(and generate-adapter-p
+			   `(,(make-adapter-module compiler-options))))))))
