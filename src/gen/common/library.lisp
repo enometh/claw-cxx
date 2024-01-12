@@ -94,6 +94,38 @@
           when (find-symbol (symbol-name sym) sym-package)
             do (export sym sym-package))))
 
+(defvar *delete-duplicate-definitions* nil
+  "If NON-NIL scrub the generated binding lists for duplicate defctype
+and defcstruct definitions and retain only the last definition.")
+
+(defun delete-duplicate-definitions (bindings designator)
+  (assert (member designator '(cffi:defcstruct cffi:defctype)))
+  (let ((table (make-hash-table :test #'equal))
+	(remove-bindings)
+	(len (length bindings)))
+    (loop for x in bindings
+	  for i from 0
+	  do (if (eql (car x) designator)
+		 (pushnew (list i x) (gethash (second x) table))))
+    ;; table keys are names defined by DESIGNATOR. table values are a
+    ;; list of (positon FORM), in descending order of position which
+    ;; is the order in the final nreversed list.  when there are
+    ;; duplicates there are more than one form, and we remove all but
+    ;; the last form
+    (loop for _k being each hash-key of table using (hash-value v)
+	  when (cdr v)
+	  do (loop for ((_i form) . rest) on v
+		   when rest
+		   do (push form remove-bindings)))
+    ;; can't do better than quadratic
+    (loop for b in remove-bindings
+	  do (setq bindings (delete b bindings)))
+    (let ((new-len (length bindings)))
+      (when (> new-len len)
+	(format t "delete-duplicate-definitions: ~S: removed ~D bindings: ~A~&"
+	      designator (- new-len len) (mapcar 'second remove-bindings)))))
+  bindings)
+
 
 (defun explode-library-definition (generator language wrapper configuration)
   (declare (ignore language))
@@ -164,6 +196,9 @@
                                      (lambda () (generate-binding generator entity)))))
                      (loop for bing in generated
                            do (push bing bindings))))
+	  (when *delete-duplicate-definitions*
+	    (setq bindings (delete-duplicate-definitions bindings 'cffi:defctype))
+	    (setq bindings (delete-duplicate-definitions bindings 'cffi:defcstruct)))
           (when *adapter*
             (generate-adapter-file *adapter*))
           (make-instance
