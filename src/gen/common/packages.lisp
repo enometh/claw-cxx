@@ -52,4 +52,7 @@
            #:parameter
 
            #:generator
-           #:list-required-systems))
+           #:list-required-systems
+
+           #:*delete-duplicate-definitions*
+   ))
