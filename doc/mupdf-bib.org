@@ -1,0 +1,137 @@
+#+title: mupdf bib file (local resources)
+* ADMIN stuff
+:COMMENT:
+** mupdf-bib-org-ref-config.el
+#+begin_src elisp
+(require 'bibtex-completion)
+(require 'org-ref)
+;; from https://github.com/enometh/org-media-note-ref/tree/madhu/contrib
+(require 'org-media-note)
+(require 'org-media-note-org-ref)
+(require 'omn-transient)
+(require 'org-pdf-open)
+
+(setq org-bibtex-prefix "BIB_")
+(setq org-bibtex-export-arbitrary-fields t)
+
+(defvar $mupdf-bib-dir "~/cl/extern/cl-claw-mupdf/doc/")
+(setq bibtex-completion-bibliography
+  (list (file-name-concat $mupdf-bib-dir "mupdf-bib.bib")))
+(setq bibtex-completion-notes-path
+      (file-name-concat $mupdf-bib-dir "notes/"))
+
+(setq org-startup-folded 'nofold)
+(setq org-startup-truncated nil)
+(setq org-descriptive-links nil)
+
+;; org-bibtex-export-to-kill-ring
+;; (bibtex-completion-clear-cache)
+;; (bibtex-completion-init)
+;; org-bibtex-entries
+;; (org-bibtex-check)
+(when nil
+(defun bibtex-to-org ()
+  "read org-bibtex-entries from current buffer"
+  (bibtex-map-entries (lambda (key beg end)
+			(org-bibtex-read))))
+(with-temp-buffer
+  (while org-bibtex-entries (org-bibtex-write))
+  (write-region (point-min) (point-max) "/dev/shm/1"))
+(with-temp-buffer
+  (insert-file-contents "/dev/shm/1")
+  (org-mode)
+  (goto-char (point-min))
+  (org-bibtex "/dev/shm/1.bib"))
+)
+#+end_src
+
+** export to bib
+#+begin_src elisp
+# for use with ol-bibtex: use org-bibtex-create to create entries
+# and export to grapheme-bib.bib
+(defvar $mupdf-bib-dir "~/cl/extern/cl-claw-mupdf/doc/")
+(with-temp-buffer
+  (insert-file-contents "mupdf-bib.org")
+  (org-mode)
+  (goto-char (point-min))
+  (org-bibtex (file-name-concat (expand-file-name $mupdf-bib-dir)
+				"mupdf-bib.bib")))
+#+end_src
+** test
+
+#+end_src
+* mupdfexplored
+:PROPERTIES:
+:BIB_TITLE: mupdfexplored
+:BIB_BTYPE: misc
+:CUSTOM_ID: rwyatmexp22
+:BIB_URI: https://mupdf.com/docs/mupdf_explored.pdf
+:BIB_FILE: {~/tmp/doc/mupdf/mupdf.com/docs/mupdf_explored.pdf}
+:BIB_YEAR: 2022
+:BIB_HOWPUBLISHED: web
+:BIB_AUTHOR: Wyatt
+:END:
+
+* pymudpfdoc
+:BIB_TITLE: pymupdfdoc
+:BIB_BTYPE: misc
+:CUSTOM_ID: pymupdfdoc
+:BIB_URI: https://mupdf.com/docs/mupdf_explored.pdf
+:BIB_FILE: {file:///scratch/share/docs/sphinx-doc/PyMuPDF/textpage.html}
+:BIB_YEAR: 2020
+:BIB_HOWPUBLISHED: web
+:BIB_AUTHOR: Artifex
+
+file:///scratch/share/docs/sphinx-doc/PyMuPDF/textpage.html
+
+* mupdf doxygen c
+mupdf-x11 /14/build/mupdf/docs/generated/c/latex/refman.pdf
+/14/build/mupdf/docs/src/html/
+/14/build/mupdf/docs/generated/c/html/index.html
+
+* mupdf sphinxdoc
+/scratch/share/docs/sphinx-doc/mupdf/
+
+* mupdf doxygen c++
+# endless loop
+/14/build/mupdf/docs/generated/c++/latex/refman.pdf
+/14/build/mupdf/docs/generated/c++/html/index.html
+* mupdf doxygen python
+
+
+* PyMuPDF Github Discussion 1453
+https://github.com/pymupdf/PyMuPDF/discussions/1453
+* PyMuPDF Github Issue 775
+
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/jupyter-notebooks/partial-ocr.ipynb
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/OCR/tesseract1.py
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/OCR/tesseract2.py
+
+* text extraction with mupdf artifex blog 
+wyeb /home/madhu/tmp/doc/mupdf/artifex.com/blog/text-extraction-with-pymupdf
+
+
+* ocr layer via tex shreevatsa blog
+file:///home/madhu/Downloads-wyeb/shreevatsa.net/post/add-ocr-layer-to-pdf/index.html
+
+* Tesseract glyphless font
+/7/gtk/tesseract/tessdata/pdf.ttf
+
+/home/madhu/Downloads-wyeb/raw.githubusercontent.com/tesseract-ocr/tesseract/f38e7a7ba850b668d4505dd4c712238d7ec63ca8/src/api/pdfrenderer.cpp#L221
+
+
+
+* Adobe pdf 2008 standard
+mupdf-x11 /16/tmp.d/books.d/opensource.adobe.com/dc-acrobat-sdk-docs/standards/pdfstandards/pdf/PDF32000_2008.pdf &
+
+
+* file:///home/madhu/tmp/doc/mupdf/github.com/pymupdf/PyMuPDF/wiki/How-to-Rotate-PDF-pages-in-a-handful-of-lines-(v1.9.3)
+
+* wyeb /home/madhu/tmp/doc/mupdf/artifex.com/blog/text-extraction-with-pymupdf
+[;madhu 240106]
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/jupyter-notebooks/partial-ocr.ipynb
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/OCR/tesseract1.py
+~/tmp/doc/mupdf/raw.githubusercontent.com/pymupdf/PyMuPDF-Utilities/master/OCR/tesseract2.py
+
+* PyMuPDF Acquired by Artifex #1759
+/home/madhu/tmp/doc/mupdf/github.com/pymupdf/PyMuPDF/discussions/1759
