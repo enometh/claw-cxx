@@ -523,7 +523,7 @@
 
 
 ;; convenience macro that wraps up the x86 target boilerplate
-(defmacro claw-cxx-defwrapper (name &key package base-path spec-path headers system-includes includes
+(defmacro claw-cxx-defwrapper (name &key package base-path headers system-includes includes
 			       (generate-adapter-p t))
   `(defwrapper (,name
 		(:system ,name)
@@ -534,8 +534,7 @@
 		(:targets
 		 ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
 		 ((:and :x86 :linux) "i686-pc-linux-gnu"))
-		(:include-definitions ".")
-		(:spec-path ,spec-path))
+		(:include-definitions "."))
      :in-package ,package
      :trim-enum-prefix nil
      :recognize-bitfields t
