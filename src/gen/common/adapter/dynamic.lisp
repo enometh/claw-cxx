@@ -130,7 +130,8 @@
                                      (list ,@(includes-of this))
                                      (merge-pathnames (or target ,shared-library-name)
                                                       ,(claw.wrapper:merge-wrapper-pathname
-                                                        "" wrapper))
+                                                        "" wrapper)
+						      nil)
                                      :dependencies dependencies
                                      :compiler compiler
                                      :flags flags
