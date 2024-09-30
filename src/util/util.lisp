@@ -228,7 +228,8 @@
 			  (asdf:component-pathname component)
 			  #+mk-defsystem
 			  (or (mk::component-source-pathname component)
-			      *default-pathname-defaults*)))
+			      *default-pathname-defaults*)
+			  nil))
         (null #+(and asdf (not mk-defsystem))
 	      (asdf:component-pathname component)
 	      #+mk-defsystem
