@@ -322,7 +322,7 @@
          required-systems
          (timestamp-comment (format-claw-timestamp-text)))
     (flet ((%bindings-file (target)
-             (merge-pathnames (format nil "~A.lisp" target) bindings-path)))
+             (merge-pathnames (format nil "~A.lisp" target) (translate-logical-pathname bindings-path) nil)))
       (loop for target-opts in (wrapper-options-targets opts)
             for features = (target-options-features target-opts)
             for triple = (target-options-triple target-opts)
@@ -413,7 +413,7 @@
                    out))
           (format out "~&  :components~&  ")
           (prin1 (loop for (features . target) in (reverse feature-targets)
-                       collect `(:file ,(namestring (merge-pathnames target enough-bindings-path))
+                       collect `(:file ,(namestring (merge-pathnames target (translate-logical-pathname enough-bindings-path) nil))
                                  :if-feature ,features))
                  out)
 	  (format out "~&   (:module \"lib\"~%    :components~&    ")

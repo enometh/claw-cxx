@@ -49,7 +49,9 @@
                                       (pathname-name path)
                                       target
                                       (pathname-type path))
-                              (uiop:pathname-directory-pathname path))
+			      (translate-logical-pathname
+			       (uiop:pathname-directory-pathname path))
+			      nil)
                              wrapper)
                             :want-file t)
               headers (claw.wrapper:wrapper-options-headers opts)
