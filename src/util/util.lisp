@@ -47,7 +47,6 @@
            #:make-compiler-option #:make-compiler-options
            #:claw-cxx-defsystems
    ))
-
 (uiop:define-package :claw.util.infix
   (:use))
 (cl:in-package :claw.util)
@@ -270,21 +269,28 @@
 				(first form) :error)
 		 (rest form)))))
 
+(defun ensure-version-nil (pathname)
+  #+sbcl
+  (make-pathname :defaults pathname :version nil)
+  #-sbcl
+  pathname)
+
 
 (defun find-path (relative &key system path)
   (let ((relative (ensure-list relative)))
     (if (or path (not system))
         (flet ((%relative (base rel)
                  (let ((base (uiop:ensure-directory-pathname base)))
-                   (uiop:merge-pathnames* (cond ((pathnamep rel) rel)
+                   (uiop:merge-pathnames* (ensure-version-nil
+                                          (cond ((pathnamep rel) rel)
                                                 ((and system (symbolp rel))
                                                  (asdf-path #+(and asdf (not mk-defsystem))(asdf:find-system system t)
                                                             #+mk-defsystem (mk::find-system system :error)
                                                             rel))
-                                                (t (string rel)))
+                                                (t (string rel))))
                                           base))))
-          (reduce #'%relative relative :initial-value (or path
-                                                          *default-pathname-defaults*)))
+          (reduce #'%relative relative :initial-value (ensure-version-nil (or path
+                                                          *default-pathname-defaults*))))
         (path-or-asdf (append (list system) relative)))))
 
 ;;;
