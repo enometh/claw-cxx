@@ -108,14 +108,18 @@
 
 (defvar *fix-recognition-of-pointer-to-string*  :revert
   "
-:DEFAULT - upstream behaviour from commit 6fcffa1b44a \"Fully Unwrap Potential Character type\"
+Control behaviuor of entity->iffi-type to fix recognitions of strings
+when using (defwrapper :recognize-strings t).
 
-:REVERT - reverts commit 6fcffa1b44a
+:DEFAULT - upstream behaviour from commit 6fcffa1b44a
+  \"Fully Unwrap Potential Character type\"
 
-:BOHONGUANG-FIX1 - use published from bohonguag/claw commit c13d62827d
+:REVERT - reverts the commit 6fcffa1b44a
 
-:BOHONGUAG-FIX2 - fix up typo in BOHONGUAG-FIX1
-"
+:BOHONGUANG-FIX1 - use fix published on bohonguag/claw commit c13d62827d
+
+:BOHONGUAG-FIX2 - fix up the above BOHONGUAG-FIX1
+")
 
 (defun entity->iffi-type (entity &key (qualify-records *qualify-records*) ((:const-qualified const-qualified-p) nil))
   (let ((*qualify-records* qualify-records))
