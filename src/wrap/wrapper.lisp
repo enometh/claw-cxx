@@ -470,10 +470,12 @@
 
 (defun expand-bindings (opts bindings-table)
   `(progn
-     ,@(loop for (features . target) in (wrapper-options-targets opts)
+     ,@(loop for target-opts in (wrapper-options-targets opts)
+	     for features = (target-options-features target-opts)
+	     for triple = (target-options-triple target-opts)
              when (or (eq t features)
                       (uiop:featurep features))
-               return (bindings-definition (gethash target bindings-table)))))
+               return (bindings-definition (gethash triple bindings-table)))))
 
 
 (defun call-with-wrapper-opts (name wrapper-handler &key always-generate)
