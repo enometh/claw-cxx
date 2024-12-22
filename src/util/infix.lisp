@@ -277,6 +277,12 @@
 
 (pushnew :claw-infix *features*)
 
+#+clisp
+;; clisp barfs if infix-reader is not defined. so define a dummy infix reader first
+(defun infix-reader (stream subchar arg)
+  ;; Read either #I(...) or #I"..."
+  (error "Stub implemention for CLISP must be overriden"))
+
 (named-readtables:defreadtable infix
   (:merge :standard)
   (:dispatch-macro-char #\# #\I 'infix-reader))
