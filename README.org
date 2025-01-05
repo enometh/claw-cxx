@@ -49,7 +49,10 @@ with (setf (macro-function 'cffi:defcfun) cobj::+defcfun+).
 ** generate (one-time)
 #+begin_src lisp
 ;; bindings
-(mk:oos :claw-cl-sdl3/defwrap :load)
+(mk:oos :claw-cxx :load)
+(mk:oos :cl-claw-sdl3/defwrap :load)
+#+nil
+(setup-base-dir-defaults "/14/build/EXT-LISP/claw-cxx-sdl3/")
 (claw-cxx-sdl3-user::setup-base-dir)
 (claw.wrapper:generate-wrapper claw-cxx-sdl3-user::$wrapper-name)
 ;; defsystems
@@ -59,24 +62,23 @@ with (setf (macro-function 'cffi:defcfun) cobj::+defcfun+).
 
 ** compile (one-time)
 #+begin_src lisp
-(load claw-cxx-sdl3-user::$system-file)
-;; ; loading #P"/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system"
-;; compile library
-(mk:oos :claw-cxx-sdl3.library :compile)
-;; bindings
-(require 'cffi-object)
+(mk:oos :claw-cxx/utils :load)
+(mk:oos :cl-claw-sdl3/defcfun) ;loads cffi-object
 (assert (eql (macro-function 'cffi::defcfun)
 	     (macro-function 'cffi-object::defcobjfun)))
-(mk:oos :claw-cxx-sdl3.bindings :compile :force t :propgate nil)
-#+end_src
+(load claw-cxx-sdl3-user::$system-file)
+(mk:oos :claw-cxx-sdl3.bindings :load)
+(mk:oos :claw-cxx-sdl3.library :load)
 
-** usage
+* cl-claw-sdl3/sdl3 "porcelain bindings"
+- cannibalised from github.com/lispgames/cl-sdl2.git
+- depends on trivial-channels, opengl
 #+begin_src lisp
-(in-package "CLAW-CXX-SDL3-USER")
-(require 'cffi-object)
+;; prereqs sdl3-porcelain
+(load "~/cl/extern/Github/trivial-channels/trivial-channels.system")
+(load "~/cl/extern/Github/cl-opengl/cl-opengl.system")
 
-(list cobj::+defcfun+
-      (macro-function 'cffi::defcfun)
-      (macro-function 'cffi-object::defcfun))
-;; TBD
+(require 'cl-claw-sdl3/base-config)
+(load claw-cxx-sdl3-user::$system-file)
+(require 'claw-cxx-sdl3/sdl3)
 #+end_src

@@ -111,3 +111,11 @@ called `a.h ' in that directory."
   (unless (probe-file (merge-pathnames "a.h" $base-dir))
     (user::string->file $inclusives  (merge-pathnames "a.h" $base-dir))))
 
+(defun setup-base-dir-defaults (base-dir)
+  (setq $base-dir base-dir)
+  (setq $fasl-root (merge-pathnames "fasl/" $base-dir))
+  (setq $includes-paths (list $base-dir))
+  (setq $system-file (merge-pathnames  (format nil "~(~A.system~)" $system-name)
+				       $base-dir)))
+
+

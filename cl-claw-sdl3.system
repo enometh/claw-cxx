@@ -40,3 +40,21 @@
 
 #+nil
 (mk:oos :cl-claw-sdl3/defsys :load :compile-during-load t)
+
+(mk:defsystem :cl-claw-sdl3/user
+  :source-pathname *cl-claw-sdl3-source-dir*
+  :binary-pathname *cl-claw-sdl3-binary-dir*
+  :source-extension "lisp"
+  :depends-on (:cl-claw-sdl3/base-config
+	       :claw-cxx-sdl3.bindings
+	       :claw-cxx-sdl3.library
+	       :claw-cxx/util
+	       :trivial-channels)
+  :components ("sdl3"
+	       "video"
+	       "events"))
+
+#+nil
+(mk:oos :cl-claw-sdl3/user :load :compile-during-load t)
+
+

@@ -1,0 +1,282 @@
+(in-package "CLAW-CXX-SDL3-USER")
+
+;; from sdl2/src/events.lisp, adapted for cffi-object
+;; :firstevent -> :sdl-event-first, etc.
+;; check-rc
+
+(defvar *user-event-types* (make-hash-table))
+(defvar *user-event-codes* (make-hash-table))
+(defvar *user-events* (make-hash-table))
+(defvar *user-event-id* (make-sdl-atomic-int :value 0))
+(defvar *event-loop* nil)
+
+#+nil
+(cobj::define-struct-cobject-class sdl-event)
+
+(eval-when (load eval compile)
+(defun new-event (&optional (event-type :sdl-event-first))
+  (make-sdl-event :type (if (integerp event-type)
+			    event-type
+			    (cffi:foreign-enum-value 'sdl-event-type
+						     event-type)))))
+
+#+nil
+(new-event)
+
+(defun free-event (event)
+  (declare (ignorable event))
+  ;; presumably handled by cffi-object magic?
+  )
+
+(defun register-user-event-type (user-event-type)
+  "Register a new sdl event-type if it doesn't already exist"
+  (when (not (keywordp user-event-type))
+    (error "Event types must be given as keywords"))
+  (multiple-value-bind (event-type-code event-type-found)
+      (gethash user-event-type *user-event-codes*)
+    (if event-type-found
+        event-type-code
+        (let ((new-event-code (sdl-register-events 1)))
+          (if (not (= new-event-code 0))
+              (progn
+                (setf (gethash user-event-type *user-event-codes*) new-event-code)
+                (setf (gethash new-event-code *user-event-types*) user-event-type)
+                new-event-code)
+              (error (format nil "Failed to register new user-event type: ~a" user-event-type)))))))
+
+;;XXX
+(defmacro with-sdl-event ((event &optional (event-type :sdl-event-first)) &body body)
+  "Allocate and automatically free an sdl event struct."
+  `(let ((,event (new-event ,event-type)))
+     (unwind-protect (progn ,@body)
+       (free-event ,event))))
+
+(defun add-user-data (user-data)
+  (let* ((event-id (sdl-add-atomic-int *user-event-id* 1))
+         (id-in-use (nth-value 1 (gethash event-id *user-events*))))
+    (when id-in-use
+      (error "Event ID already in use"))
+    (setf (gethash event-id *user-events*) user-data)
+    event-id))
+
+(defun free-user-data (event-id)
+  (remhash event-id *user-events*))
+
+(defun get-user-data (event-id)
+  "Returns the user-data attached to an event-id and if the event-id was found"
+  (gethash event-id *user-events*))
+
+(defun get-event-code (event-type)
+  (multiple-value-bind (user-event-code is-user-event) (gethash event-type *user-event-codes*)
+    (cond
+      (is-user-event
+       user-event-code)
+      ((eq :lisp-message event-type)
+       *lisp-message-event*)
+      (t
+       (cffi:foreign-enum-value 'sdl-event-type  event-type)))))
+
+(defun get-event-type (event)
+  (multiple-value-bind (user-event-type is-user-event)
+      (gethash (sdl-event-type event) *user-event-types*)
+    (cond
+      (is-user-event
+       user-event-type)
+      ((eq (sdl-event-type event) *lisp-message-event*)
+       :lisp-message)
+      (t
+       (or (cffi:foreign-enum-keyword 'sdl-event-type
+				      (sdl-event-type event))
+
+           (sdl-event-type event))))))
+
+(defun user-event-type-p (event-type)
+  (nth-value 1 (gethash event-type *user-event-codes*)))
+
+(defun pump-events ()
+  (sdl-pump-events))
+
+(defun push-event (event)
+  "Allocates a new sdl event struct of the specified type and pushes it into the queue."
+  (etypecase event
+    (symbol
+     (with-sdl-event (ev event)
+       (setf (sdl-event-type ev)
+	     (get-event-code event))
+       (check-rc (sdl-push-event ev))))
+    (sdl-event
+     (check-rc (sdl-push-event event)))
+    (sdl-user-event
+     (check-rc (sdl-push-event event)))))
+
+(defun push-user-event (user-event &optional user-data)
+  "Allocates a new user-defined sdl event struct of the specified type and pushes it into the queue.
+Stores the optional user-data in sdl2::*user-events*"
+  (if (user-event-type-p user-event)
+      (with-sdl-event (event user-event)
+        (let ((event-id (add-user-data user-data)))
+	  (setf (sdl-user-event-code (sdl-event-user event))
+		event-id)
+          (push-event event)))
+      (error "Not a known user-event type")))
+
+(defun push-quit-event ()
+  (push-event :sdl-event-quit))
+
+(defun next-event (event &optional (method :poll) timeout)
+  "Method can be either :poll, :wait. If :wait is used, `TIMEOUT` may be specified."
+  (case method
+    (:poll (sdl-poll-event event))
+    (:wait
+     (if timeout
+         (sdl-wait-event-timeout event timeout)
+         (sdl-wait-event event)))
+    (:wait-with-timeout
+     (sdl-wait-event-timeout event (or timeout 0)))
+    (otherwise (error "Event method must be :poll or :wait"))))
+
+(defun expand-idle-handler (event-handlers)
+  (remove nil (mapcar #'(lambda (handler)
+                          (cond ((eq (first handler) :idle)
+                                 `(progn ,@(rest (rest handler))))))
+                      event-handlers)))
+
+(defun expand-quit-handler (sdl-event forms quit)
+  (declare (ignore sdl-event))
+  `(:quit (setf ,quit (funcall #'(lambda () ,@forms)))))
+
+
+(defparameter *event-type-to-accessor*
+  '((:sdl-event-gamepad-axis-motion . :gaxis)
+    (:sdl-event-gamepad-button-down . :gbutton)
+    (:sdl-event-gamepad-button-up . :gbutton)
+    (:sdl-event-gamepad-added . :gdevice)
+    (:sdl-event-gamepad-remapped . :gdevice)
+    (:sdl-event-gamepad-removed . :gdevice)
+    (:sdl-event-drop-file . :drop)
+    (:sdl-event-finger-motion . :tfinger)
+    (:sdl-event-finger-down . :tfinger)
+    (:sdl-event-finger-up . :tfinger)
+    (:sdl-event-joystick-axis-motion . :jaxis)
+    (:sdl-event-joystick-ball-motion . :jball)
+    (:sdl-event-joystick-button-down . :jbutton)
+    (:sdl-event-joystick-button-up . :jbutton)
+    (:sdl-event-joystick-added . :jdevice)
+    (:sdl-event-joystick-removed . :jdevice)
+    (:sdl-event-joystick-hat-motion . :jhat)
+    (:sdl-event-key-down . :key)
+    (:sdl-event-key-up . :key)
+    (:sdl-event-mouse-button-down . :button)
+    (:sdl-event-mouse-button-up . :button)
+    (:sdl-event-mouse-motion . :motion)
+    (:sdl-event-mouse-wheel . :wheel)
+;;    (:multigesture . :mgesture)
+;;    (:syswmevent . :syswm)
+    (:sdl-event-text-editing . :edit)
+    (:sdl-event-text-input . :text)
+    (:sdl-event-user . :user)
+    (:lisp-message . :user)
+    (:sdl-event-window-close-requested . :window)
+    (:sdl-event-window-display-changed . :window)
+    (:sdl-event-window-enter . :window)
+    (:sdl-event-window-exposed . :window)
+    (:sdl-event-window-focus-gained . :window)
+    (:sdl-event-window-focus-lost . :window)
+    (:sdl-event-window-hidden . :window)
+    (:sdl-event-window-hit-test . :window)
+    (:sdl-event-window-iccprof-changed . :window)
+    (:sdl-event-window-mouse-leave . :window)
+    (:sdl-event-window-maximized . :window)
+    (:sdl-event-window-minimized . :window)
+    (:sdl-event-window-resized . :window)
+    (:sdl-event-window-restored . :window)
+    (:sdl-event-window-shown . :window)))
+
+#||
+(cffi:foreign-enum-value 'sdl-event-type :sdl-event-mouse-wheel)
+(cdr (assoc :sdl-event-mouse-wheel *event-type-to-accessor*))
+(apropos (event-type-to-accessor  :sdl-event-mouse-wheel))
+(event-type-to-accessor :sdl-event-window-shown)
+||#
+
+(defun event-type-to-accessor (event-type)
+  (let* ((ref (or (cdr (assoc event-type *event-type-to-accessor*))
+		  :user))
+	 (name (format nil "SDL-EVENT-~A" (string ref)))
+	 (sym (find-symbol name "CLAW-CXX-SDL3")))
+    (assert (fboundp sym))
+    #+nil
+    (when (fboundp sym)
+      (fdefinition sym))
+    sym))
+
+
+(defun unpack-event-params (event-var event-type params)
+  (mapcar (lambda (param)
+            (let ((keyword (first param))
+                  (binding (second param))
+                  (ref (or (cdr (assoc event-type *event-type-to-accessor*))
+                           :user))
+		  (acc (event-type-to-accessor event-type)))
+              (if (eql keyword :user-data)
+                  `(,binding (get-user-data (sdl-user-event-code (,acc ,event-var))))
+                  (if (and (or (eql ref :text) (eql ref :edit)) (eql keyword :text))
+                      `(,binding (cffi:foreign-string-to-lisp
+				  (,acc ,event-var)))
+                      `(,binding (,acc ,event-var))))))
+          params))
+
+(defun expand-handler (sdl-event event-type params forms)
+  (let ((parameter-pairs nil))
+    (do ((keyword params (if (cdr keyword)
+                             (cddr keyword)
+                             nil)))
+        ((null keyword))
+      (push (list (first keyword) (second keyword)) parameter-pairs))
+    `(,event-type
+      (let (,@(unpack-event-params sdl-event
+                                   event-type
+                                   (nreverse parameter-pairs)))
+        ,@forms))))
+
+;; TODO you should be able to specify a target framerate
+(defmacro with-event-loop ((&key background (method :poll) (timeout nil) recursive)
+                           &body event-handlers)
+  (let ((quit (gensym "QUIT-"))
+        (sdl-event (gensym "SDL-EVENT-"))
+        (sdl-event-type (gensym "SDL-EVENT-TYPE"))
+        (sdl-event-id (gensym "SDL-EVENT-ID"))
+        (idle-func (gensym "IDLE-FUNC-"))
+        (rc (gensym "RC-")))
+    `(when (or ,recursive (not *event-loop*))
+       (setf *event-loop* t)
+       (in-main-thread (:background ,background)
+         (let ((,quit nil)
+               (,idle-func nil))
+           (unwind-protect
+                (with-sdl-event (,sdl-event)
+                  (setf ,idle-func #'(lambda () ,@(expand-idle-handler event-handlers)))
+                  (progn ,@(cddr (find :initialize event-handlers :key #'first)))
+                  (loop :until ,quit
+                        :do (loop :as ,rc = (next-event ,sdl-event ,method ,timeout)
+                                  ,@(if (eq :poll method)
+                                        `(:until (= 0 ,rc))
+                                        `(:until ,quit))
+                                  :do (let* ((,sdl-event-type (get-event-type ,sdl-event))
+                                             (,sdl-event-id (and (user-event-type-p ,sdl-event-type)
+                                                                 (sdl-user-event-code ,sdl-event))))
+                                        (case ,sdl-event-type
+                                          (:lisp-message () (get-and-handle-messages))
+                                          ,@(loop :for (type params . forms) :in event-handlers
+                                                  :collect
+                                                  (if (eq type :quit)
+                                                      (expand-quit-handler sdl-event forms quit)
+                                                      (expand-handler sdl-event type params forms))
+                                                    :into results
+                                                  :finally (return (remove nil results))))
+                                        (when (and ,sdl-event-id
+                                                   (not (eq ,sdl-event-type :lisp-message)))
+                                          (free-user-data ,sdl-event-id))))
+                            (unless ,quit
+                              (funcall ,idle-func))))
+             (setf *event-loop* nil)))))))
