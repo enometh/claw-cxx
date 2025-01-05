@@ -1,0 +1,82 @@
+#+PROPERTY: header-args :results silent raw drawer
+* cl-claw-sdl3 - wrap libsdl3
+** overview
+libsdl3 bindings with borodust `claw'.
+
+The files in this directory are split out from my usual single
+worksheet file called "claw-cxx-sdl3.l" which I typically go through
+while evaluating forms by hand. This explodes the complexity. Start by
+looking at the proliferation of systems which are defined in
+cl-claw-sdl3.system
+
+*package.lisp* A note on package names. The package "CLAW-CXX-SDL3" is
+used for the generated bindings and for the cffi-object generated
+functions. All the other code is defined in "CLAW-CXX-SDL3-USER"
+system which is pedantically a naming violation, since it is not a
+USER package but is really the implementation package for the
+CL-CLAW-SDL3 system.
+
+*base-config.lisp* This collects some "$-" prefixed variables for
+convenience. I installed sdl3 with CMAKE_INSTALL_PREFIX ~/root/usr and
+the paths here reflect that. The other files mostly look like
+boilerplate code which can be "templated" using these variables.
+
+*defwrap.lisp* This has the main claw-wrapper.defwrapper form, from
+which bindings can be generated and persisted.
+
+*defsys.lisp* This programatically generetes the mk-defsystem
+definitions for the systems claw-cxx-sdl3.library and
+claw-cxx-sdl3.bindings. The systems can be persisted.
+
+*defcfun.lisp* there is no good way to use this file.  to use cffi-object,
+before compiling
+claw-cxx-sdl3.binings, one must (setf (macro-function 'cffi::defcfun)
+(macro-function 'cobj:defcobjfun))
+and then undo this later
+with (setf (macro-function 'cffi:defcfun) cobj::+defcfun+).
+
+** prereqs
+#+begin_src lisp
+;; prefer not put these in mk:*central-registry* "to promote
+;; awareness"
+(progn
+(load "~/cl/extern/Github/mgl-pax/mgl-pax.system")
+(load "~/cl/extern/Github/named-readtables/named-readtables.system")
+(load "~/cl/extern/claw-cxx/claw-cxx.system"))
+(load "~/cl/extern/cl-claw-sdl3/cl-claw-sdl3.system")
+#+end_src
+
+** generate (one-time)
+#+begin_src lisp
+;; bindings
+(mk:oos :claw-cl-sdl3/defwrap :load)
+(claw-cxx-sdl3-user::setup-base-dir)
+(claw.wrapper:generate-wrapper claw-cxx-sdl3-user::$wrapper-name)
+;; defsystems
+(mk:oos :claw-cl-sdl3/defsys :load)
+(claw-cxx-sdl3-user::dump-defsystem-file)
+#+end_src
+
+** compile (one-time)
+#+begin_src lisp
+(load claw-cxx-sdl3-user::$system-file)
+;; ; loading #P"/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system"
+;; compile library
+(mk:oos :claw-cxx-sdl3.library :compile)
+;; bindings
+(require 'cffi-object)
+(assert (eql (macro-function 'cffi::defcfun)
+	     (macro-function 'cffi-object::defcobjfun)))
+(mk:oos :claw-cxx-sdl3.bindings :compile :force t :propgate nil)
+#+end_src
+
+** usage
+#+begin_src lisp
+(in-package "CLAW-CXX-SDL3-USER")
+(require 'cffi-object)
+
+(list cobj::+defcfun+
+      (macro-function 'cffi::defcfun)
+      (macro-function 'cffi-object::defcfun))
+;; TBD
+#+end_src
