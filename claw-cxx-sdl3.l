@@ -112,7 +112,7 @@
 (load "~/cl/extern/Github/trivial-channels/trivial-channels.system"))
 
 #+nil
-(mk:oos :cl-claw-sdl3/user :load)
+(mk:oos :cl-claw-sdl3/sdl3 :load)
 
 
 ;;; ----------------------------------------------------------------------

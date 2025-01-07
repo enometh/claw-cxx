@@ -72,7 +72,7 @@
 #+nil
 (mk:oos :cl-claw-sdl3/library :load :compile-during-load t)
 
-(mk:defsystem :cl-claw-sdl3/user
+(mk:defsystem :cl-claw-sdl3/sdl3
   :source-pathname *cl-claw-sdl3-source-dir*
   :binary-pathname *cl-claw-sdl3-binary-dir*
   :source-extension "lisp"
@@ -83,6 +83,6 @@
 	       "events"))
 
 #+nil
-(mk:oos :cl-claw-sdl3/user :load :compile-during-load t)
+(mk:oos :cl-claw-sdl3/sdl3 :load :compile-during-load t)
 
 
