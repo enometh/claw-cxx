@@ -44,50 +44,7 @@
 #+nil
 (load "/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system")
 
-;;; compile library
-#+nil
-(mk:oos :claw-cxx-sdl3.library :compile)
-
-#+(and clozure nil);; work around ccl bug
-(progn #+nil ;; fails on ccl, need to fix cffi-object:defcfun to avoid blowing stack.
-(require 'cffi-object)
-cobj::+defcfun+ ;; #<Compiled-function CFFI:DEFCFUN Macroexpander #x3020011CA2BF>
-(macro-function 'cffi::defcfun) ;; #<Compiled-function CFFI:DEFCFUN Macroexpander #x3020011CA2BF>
-(macro-function 'cffi-object::defcfun) ;; #<Compiled-function CFFI:DEFCFUN (Non-Global)  #x302001590E1F>
-(setf (macro-function 'cffi-object::defcfun) cobj::+defcfun+)
-;; to recover if overwritten
-#+nil
-(mk:load-system 'cffi)
-#+nil
-(makunbound 'cobj::+defcfun+)
-#+nil
-(setf cobj::+defcfun+ (macro-function 'cffi::defcfun))
-#+nil
-(setf (macro-function 'cffi-object::defcfun) cobj::+defcfun+)
-(list cobj::+defcfun+ (macro-function 'cffi::defcfun) (macro-function 'cffi-object::defcfun)))
-
-;; compile bindings
-#+nil
-(progn
-(require 'cffi-object)
-(list cobj::+defcfun+ (macro-function 'cffi::defcfun) (macro-function 'cffi-object::defcfun))
-(setq cobj::*optimize-object-allocation-p* nil)
-#+nil
-(setq cobj::*optimize-object-allocation-p* t)
-(setf (macro-function 'cffi::defcfun) (macro-function 'cffi-object::defcobjfun))
-(assert (eql (macro-function 'cffi::defcfun)
-	     (macro-function 'cffi-object::defcobjfun)))
-(mk:oos :claw-cxx-sdl3.bindings :compile :force t :propagate nil)
-#+nil
-(setf (macro-function 'cffi::defcfun)  cobj::+defcfun+))
-
-
-;;; ----------------------------------------------------------------------
-;;;
-;;; after everything is compiled
-;;;
-(load "/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system")
-
+;; load foreign library
 (unless (cffi:find-foreign-library "libSDL3")
   (cffi:load-foreign-library "libSDL3.so"))
 
@@ -97,127 +54,65 @@ cobj::+defcfun+ ;; #<Compiled-function CFFI:DEFCFUN Macroexpander #x3020011CA2BF
 (cffi:foreign-funcall  "SDL_GetVersion" :int)
 ||#
 
+;;; compile library
 #+nil
-(unless (cffi:find-foreign-library "claw-cxx-sdl3/lib/gen/lib/adapter.x86_64-pc-linux-gnu.so")
-  (mk:mk-oos :CLAW-CXX-SDL3.LIBRARY :load :compile-during-load nil))
+(mk:oos :claw-cxx-sdl3.library :compile)
 
+;;; compile bindings
+;;;
+
+;; swap in cffi-object defcobjfun into cffi:defcfun before compiling
+;; the bindings
 #+nil
-(require 'cffi-object)
-nil
-(mk:oos :CLAW-CXX-SDL3.BINDINGS :load :compile-during-load nil :load-source-instead-of-binary nil :minimal-load t)
+(mk:oos :cl-claw-sdl3/defcfun :load :compile-during-load t)
+
+#||
+;;  loading cl-claw-sdl3/defcfun should do the following
+#+nil
+(setf (macro-function 'cffi::defcfun) (macro-function 'cobj::defcobjfun))
+;; so
+(assert (eql (macro-function 'cffi:defcfun) (macro-function 'cobj::defcobjfun)))
+
+;; on ccl if cobj::+defcfun+ says "CFFI:DEFCFUN (Non-Global)"
+#'cffi:defcfun
+;; then it may need to be fixed
+;; re-evaluate the form for cffi:defcfun
+;;(makunbound 'cobj::+defcfun+)
+(setf (symbol-value 'cobj::+defcfun+) (macro-function 'cffi:defcfun))
+(mk:oos :cl-claw-sdl3/defcfun :load)
+(assert (eql (macro-function 'cffi:defcfun) (macro-function 'cobj::defcobjfun)))
+||#
+
+;; compile and load cobj bindings with new defn of cffi:defcfun.
+(mk:oos :claw-cxx-sdl3.bindings :load :force nil :propagate nil)
+
+#||
+;; restore
+#+nil
+(setf (macro-function 'cffi::defcfun)  cobj::+defcfun+)
+||#
 
 
 ;;; ----------------------------------------------------------------------
 ;;;
-;;;
+;;; finishing step: import symbols from CLAW-CXX-SDL3 and export them
+;;; from CLAW-CXX-SDL3-USER
 ;;;
 
-#+nil
-(progn
-(require 'cffi-ops)
-(require 'cffi-object.ops))
-
-;;(cobj.ops:enable-cobject-ops)
-;;(cobj.ops:disable-cobject-ops)
+(mk:oos :cl-claw-sdl3/library :load :compile-during-load t)
 
 
 ;;; ----------------------------------------------------------------------
 ;;;
+;;; LISP LAYER OVER SDL3
 ;;;
-;;;
-#+nil
-(claw.util::use-spec-package "CLAW-CXX-SDL3"
-			     "CLAW-CXX-SDL3-USER"
-			     :dry-run-p t)
-
-(defvar $conflicts
-  (claw.util::use-spec-package "CLAW-CXX-SDL3"
-			       "CLAW-CXX-SDL3-USER"
-			       :dry-run-p nil))
-
-
-#||
-(length cobj::*cobject-class-definitions*)
-(setq  cobj::*cobject-class-definitions* nil)
-#+nil
-(cobj::define-package-cobject-classes "CLAW-CXX-SDL3")
-||#
-
-#+nil
-(cobj:define-cobject-class :CLAW-CXX-SDL3)
-
-
-(defun get-conflicts-1 (spec-package &optional (package *package*))
-  "Return a list of symbols to be uninterned in package"
-  (setq package (find-package package))
-  (setq spec-package (find-package spec-package))
-  (loop for x being each symbol of package
-      if (and (eql
- (symbol-package x) (find-package package))
-	      (multiple-value-bind (sym stat)
-		  (find-symbol (string x) spec-package)
-		;;(assert (eql sym x))
-		(eql stat :external)))
-	collect x))
-
-#||
-(setq $c1 (get-conflicts-1 'claw-cxx-sdl3 'claw-cxx-sdl3-user))
-(mapcar (lambda (x) (unintern x 'claw-cxx-sdl3-user)) $c1)
-||#
-
-(defun cobj-definables (spec-package)
-  (loop for s being each symbol of spec-package
-	with defn
-	when (and (find-class s nil)
-		  (setq defn (ignore-errors
-			       (cobj::cobject-class-definition s))))
-	collect defn))
-
-(defun get-exportables (spec-package)
-  (loop for defn in (cobj-definables spec-package)
-	append
-	(remove-if
-	 (lambda (s)
-	   (multiple-value-bind (sym stat)
-	       (find-symbol (string s) spec-package)
-	     (assert (eql sym s))
-	     (assert (eql (symbol-package sym) (find-package spec-package)))
-	     (eql stat :external)))
-	 (cobj::cobject-class-definition-symbols defn))))
 
 #+nil
 (progn
-(setq $ret (get-exportables :claw-cxx-sdl3))
-(export $ret :claw-cxx-sdl3))
-
-#||
-(sdl-get-version)
-
-(setq $d (cobj-definables :claw-cxx-sdl3))
-(length $d)
-(mapcar 'cobj::cobject-class-definition-class $d)
-(every (lambda (c)
-	 (eql (symbol-package c)
-	      (find-package :claw-cxx-xkb)))
-       (cobj::cobject-class-definition-symbols (car $d)))
-(every (lambda (c) (eql (symbol-package c) (find-package :claw-cxx-xkb))) $ret)
-
-(progn
-  (user::lc "~/cl/package-funcs.l")
-  (use-package "MY-PACKAGE-FUNCS"))
-
-(user::lc "~/cl/read-sexp.lisp")
-(package-symbols :claw-cxx-xkb-user)
-(length (package-symbols :claw-cxx-sdl3 :symbol-type :external))
-(length (package-symbols :claw-cxx-sdl3-user :symbol-type :internal))
-||#
-
-(defun set-equal (a b)
-  (and (eql (set-difference a b) nil)
-       (eql (set-difference b a) nil)))
+(load "~/cl/extern/Github/trivial-channels/trivial-channels.system"))
 
 #+nil
-(set-equal (claw.util::use-spec-package :claw-cxx-sdl3 :claw-cxx-sdl3-user :dry-run-p t) $conflicts)
+(mk:oos :cl-claw-sdl3/user :load)
 
 
 ;;; ----------------------------------------------------------------------

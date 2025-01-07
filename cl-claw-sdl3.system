@@ -41,14 +41,42 @@
 #+nil
 (mk:oos :cl-claw-sdl3/defsys :load :compile-during-load t)
 
+(mk:defsystem :cl-claw-sdl3/defcfun
+  :source-pathname *cl-claw-sdl3-source-dir*
+  :binary-pathname *cl-claw-sdl3-binary-dir*
+  :source-extension "lisp"
+  ;; :defsystem-depends-on (:trivial-features)
+  :depends-on (#:alexandria #:cffi #:cffi-ops #:cffi-object #:cffi-object.ops)
+  :components ((:file "package")
+		(:file "defcfun")))
+
+#+nil
+(mk:oos :cl-claw-sdl3/defcfun :load :compile-during-load t)
+
+;; wrapper around :claw-cxx-sdl3.bindings system. this will work the
+;; first time but will require manual deletion of generated files and
+;; recompiling if you screwed up when compiling the bindings the first
+;; time. or compile the bindings with :force t :propagate nil
+(mk:defsystem :cl-claw-sdl3/library
+  :source-pathname *cl-claw-sdl3-source-dir*
+  :binary-pathname *cl-claw-sdl3-binary-dir*
+  :source-extension "lisp"
+  ;; :defsystem-depends-on (:trivial-features)
+  :depends-on (:cl-claw-sdl3/base-config
+	       :cl-claw-sdl3/defcfun
+	       :claw-cxx-sdl3.bindings
+	       :claw-cxx/util
+	       :claw-cxx-sdl3.library)
+  :components ((:file "exports")))
+
+#+nil
+(mk:oos :cl-claw-sdl3/library :load :compile-during-load t)
+
 (mk:defsystem :cl-claw-sdl3/user
   :source-pathname *cl-claw-sdl3-source-dir*
   :binary-pathname *cl-claw-sdl3-binary-dir*
   :source-extension "lisp"
-  :depends-on (:cl-claw-sdl3/base-config
-	       :claw-cxx-sdl3.bindings
-	       :claw-cxx-sdl3.library
-	       :claw-cxx/util
+  :depends-on ( :cl-claw-sdl3/library
 	       :trivial-channels)
   :components ("sdl3"
 	       "video"
