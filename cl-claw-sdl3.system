@@ -80,7 +80,8 @@
 	       :trivial-channels)
   :components ("sdl3"
 	       "video"
-	       "events"))
+	       "events"
+	       "keyboard"))
 
 #+nil
 (mk:oos :cl-claw-sdl3/sdl3 :load :compile-during-load t)
