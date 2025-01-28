@@ -77,5 +77,5 @@
     (lambda (c)
       (let* ((input (mk::component-full-pathname c :source))
 	     (output (mk::component-full-pathname c :binary))
-	     (object (make-pathname :type "o" :defaults input)))
+	     (object (make-pathname :type "o" :defaults output)))
 	(list object output))))
