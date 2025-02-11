@@ -26,23 +26,41 @@
 (in-package "CLAW-CXX-SDL3-USER")
 *package*
 
-;;; generate bindings
+;;; to generate bindings
+#+nil
+(require 'claw-cxx)			;needs claw
+
 #+nil
 (progn
 (unless (cffi:find-foreign-library "libresect")
   (cffi:load-foreign-library "libresect.so"))
 (mk:oos :cl-claw-sdl3/defwrap :load)
+;; in case of screwup
+;; (mk:oos :cl-claw-sdl3/defwrap :compile :force t :propagate nil)
+;; (mk:oos :cl-claw-sdl3/defwrap :load :load-source-instead-of-binary t :compile-during-load nil)
 (setup-base-dir)
 (claw.wrapper:generate-wrapper :CLAW-CXX-SDL3))
 
 ;;; generate defsystem
 #+nil
 (progn
-(mk:oos :cl-claw-sdl3/defsys :load)
-(dump-defsystem-file))
+(mk:oos :cl-claw-sdl3/defsys :load :compile-during-load nil :load-source-instead-of-binary t)
+(dump-defsystem-file :if-exists :supersede))
 
+;;; load defsystem
 #+nil
 (load "/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system")
+
+#||
+;; alternate config
+(defparameter claw-cxx-sdl3-user::$base-dir "/14/build/EXT-LISP/claw-cxx-sdl3/")
+(defparameter claw-cxx-sdl3-user::$fasl-root (merge-pathnames "fasl/"  $base-dir))
+(defparameter claw-cxx-sdl3-user::$system-file
+  (merge-pathnames (format nil "~(~A.system~)"
+			   claw-cxx-sdl3-user::$system-name)
+		   claw-cxx-sdl3-user::$base-dir))
+(load $system-file)
+||#
 
 ;; load foreign library
 (unless (cffi:find-foreign-library "libSDL3")
@@ -144,6 +162,12 @@
 ;;;
 ;;;
 ;;;
+#||
+(require 'claw-cxx/util)
 (load $system-file)
-(require 'claw-cxx-sdl3.bindings)
-(require 'claw-cxx-sdl3.library)
+;;(require 'claw-cxx-sdl3.bindings)
+;; (require 'claw-cxx-sdl3.library)
+;; in case of screwup
+;; (mk:oos :cl-claw-sdl3/library :compile :force t :propagate nil)
+;; (mk:oos :cl-claw-sdl3/library :load)
+||#
