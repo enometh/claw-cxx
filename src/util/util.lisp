@@ -827,7 +827,7 @@ have to be accessed explictly (i.e. via SPEC-PACKAGE::SYM)."
 ;; them to make-compiler-options with the corresponding keywords.  the
 ;; defaults here are used by make-compiler-options if not overridden.
 
-(defvar $default-cflags '("-00"  "-gddb"))
+(defvar $default-cflags '("-O0"  "-ggdb"))
 (defvar $default-ldflags '("-Wl,-O1 -Wl,--as-needed" "-ldl"))
 (defvar $system-includes-paths nil)
 (defvar $includes-paths nil)
