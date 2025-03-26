@@ -19,9 +19,10 @@
    :source-pathname *cl-claw-mupdf-source-dir*
    :binary-pathname *cl-claw-mupdf-binary-dir*
    :source-extension "lisp"
+   :depends-on ("claw-cxx/wrapper")
    :components (
 		"package"
-		"wrapper"
+		(:file "wrapper" :load-only t)
                ))
 
 #+nil

@@ -1,19 +1,22 @@
 (cl:in-package "CL-CLAW-MUPDF")
 
-(claw:defwrapper (:claw-cxx-mupdf
-		  (:system :cl-claw-mupdf)
+#+nil
+(claw.wrapper:claw-cxx-defwrapper :claw-cxx-mupdf)
+
+(claw.wrapper:defwrapper (:claw-cxx-mupdf
+;;		  (:system :cl-claw-mupdf)
 		  (:base-path
-		   (mk::system-relative-pathname :cl-claw-mupdf
+		   (mk::system-relative-pathname :claw-cxx-mupdf
 						 "gen"))
 		  (:headers "mupdf/pdf.h")
-		  (:includes  #+nil "/usr/include/"
-		   "/14/build/mupdf/include")
+		   #+nil(:includes "/usr/include/" "/14/build/mupdf/include")
 		  (:targets
 		   ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
 		   ((:and :x86 :linux) "i686-pc-linux-gnu"))
-		  (:include-definitions ".")
-;;		  (:include-definitions "fitz.*")
-;;		  (:exclude-definitions "^$")
+;;		  (:include-definitions ".")
+		  (:include-definitions "^fitz" "^[fF][zZ]" "^[pP][dD][fF]")
+		  (:exclude-definitions ;; "^$"
+		   "__log2l" "DBL_DENORM")
 		  )
     :in-package :CLAW-CXX-MUPDF
     :trim-enum-prefix nil
