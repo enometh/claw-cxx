@@ -8,10 +8,12 @@
 		  (:base-path
 		   (mk::system-relative-pathname :claw-cxx-mupdf
 						 "gen"))
-		  (:headers "mupdf/pdf.h")
-		   #+nil(:includes "/usr/include/" "/14/build/mupdf/include")
+		  (:headers "mymupdf.h")
+		  (:includes ;; "/usr/include/" "/14/build/mupdf/include"
+		   #.(namestring (mk::system-relative-pathname :claw-cxx-mupdf "")))
 		  (:targets
 		   ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
+		   #+nil
 		   ((:and :x86 :linux) "i686-pc-linux-gnu"))
 ;;		  (:include-definitions ".")
 		  (:include-definitions "^fitz" "^[fF][zZ]" "^[pP][dD][fF]")

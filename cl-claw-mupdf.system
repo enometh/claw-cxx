@@ -41,13 +41,14 @@
 ;;;
 ;;; claw-cxx/util must be loaded before this defsystem file is loaded.
 
-#+nil
-(claw.util:make-compiler-options
- :default-cflags "-O0 -g3"
- ;; :include-paths ("/14/build/mupdf/include")
- ;; :link-libs-paths ("/tmp")
- :default-ldflags '("-Wl,-O1 -Wl,--as-needed")
- :link-libs '("mupdf" "m"))
+(defparameter $mupdf-compiler-options
+  (claw.util:make-compiler-options
+   :default-cflags "-O0 -g3"
+   ;; :include-paths ("/14/build/mupdf/include")
+   ;; :link-libs-paths ("/tmp")
+   :include-paths (namestring *cl-claw-mupdf-source-dir*)
+   :default-ldflags '("-Wl,-O1 -Wl,--as-needed")
+   :link-libs '("mupdf" "m")))
 
 (mk:defsystem :cl-claw-mupdf.library
   :source-pathname *cl-claw-mupdf-source-dir*
@@ -63,7 +64,7 @@
 		    :if-feature (:and :x86-64 :linux)
 		    :language :claw-cxx-adapter
 		    :compiler-options
-		    (:CFLAGS "-O0 -g3" :LDFLAGS "-Wl,-O1 -Wl,--as-needed -l mupdf -l m")
+		    #.$mupdf-compiler-options
 		    )))))))
 
 #+nil

@@ -223,3 +223,17 @@ ldd /tmp/mupdf/libmupdf.so | grep image
 (cffi:foreign-string-to-lisp (cffi:mem-ref  (cffi:foreign-symbol-pointer "fz_pdfocr_write_options_usage") :pointer))
 #+end_src
 
+* static-inline hack
+Work around static inline definitions which dont get picked up by
+claw.  Do this redefining static and inline to nop when processing
+resect, the adapter generates functions for the definitions.
+
+- mymupdf.h :: include mupdf/fitz.h without respecting static inlines
+- wrapper.lisp :: include mymupdf.h instead of mupdf/fitz.h
+
+#+begin_src :eval no
+# ;madhu 250326
+  gcc -I$. -DHAVE_LEPTONICA -DHAVE_TESSERACT -c mupdf-static-inlines.c -fPIC -DPIC --no-inline
+  gcc -o mupdf-static-inlines.so -shared mupdf-static-inlines.o -lm -Wl,--export-dynamic
+  objdump -t mupdf-static-inlines.so
+#+end_src
