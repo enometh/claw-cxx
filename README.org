@@ -36,21 +36,34 @@ our user package (in a fresh lisp without loading all of claw-cxx)
 set up our user package, set up ~$conflicts~
 
 *** Steps
+**** common config
+#+begin_src lisp :eval no
+;;madhu 250326 -- mupdf-25.1 from enometh-overlay, test with a
+;; different source location
+(in-package "CL-USER")
+(defparameter *cl-claw-mupdf-source-dir* "/dev/shm/cl-claw-mupdf/")
+(defparameter *cl-claw-mupdf-binary-dir*
+  (let ((user::*binary-directory-fasl-root* "/dev/shm/cl-claw-mupdf/fasl/"))
+    (binary-directory
+     "/dev/shm/cl-claw-mupdf/`")))
+
+(progn
+(load "~/cl/extern/Github/mgl-pax/mgl-pax.system")
+(load "~/cl/extern/Github/named-readtables/named-readtables.system")
+(load "~/cl/extern/claw-cxx/claw-cxx.system"))
+#+end_src
 **** generate bindings
 #+begin_src lisp
 (in-package "CL-USER")
-(progn
-(load "~/cl/extern/claw-cxx/claw-cxx.system")
+(unless (cffi:find-foreign-library "libresect")
+  (cffi:load-foreign-library "libresect.so"))
 (require 'claw-cxx))
 ;; target
-(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
-;; needs the above for directory locations
-(load "~/cl/extern/cl-claw-mupdf/claw-cxx-mupdf.system")
-
+(load (merge-pathnames "claw-cxx-mupdf.system" *cl-claw-mupdf-source-dir*))
+;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
 (mk:oos :claw-cxx-mupdf :load)
-(cffi:load-foreign-library "libresect.so")
 
-;; to force the generatation of bindings gen/bindings/x86_64-pc-linux-gnu.lisp
+;; force the generatation of bindings gen/bindings/x86_64-pc-linux-gnu.lisp
 ;; and shared library files
 ,#+nil
 (claw:generate-wrapper :claw-cxx-mupdf)
@@ -66,10 +79,12 @@ set up our user package, set up ~$conflicts~
 (require 'uiop)
 (require 'cffi)
 (load "~/cl/extern/claw-cxx/src/util/mk-defsystem-hooks.lisp")
-(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
+(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
+;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
 (mk::find-language :claw-cxx-adapter)
 (setq CLAW-MK-DEFSYSTEM-ADAPTER::+compiler+ "gcc")
-(mk:oos :cl-claw-mupdf :load)
+(mk:oos :cl-claw-mupdf.bindings :load)
+(mk:oos :cl-claw-mupdf.library :load)
 (list claw-cxx-mupdf::+fz-version+)
 #+end_src
 
@@ -196,7 +211,7 @@ g++ -Wl,--whole-archive \
  -larchive -lcurl
 ldd /tmp/mupdf/libmupdf.so | grep image
 #+end_src
-
+**** load it
 #+begin_src lisp
 (progn
 (load "~/cl/extern/claw-cxx/claw-cxx.system")
