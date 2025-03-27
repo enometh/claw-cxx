@@ -253,15 +253,16 @@
 				 +FZ-STEXT-PRESERVE-WHITESPACE+
 				 +FZ-STEXT-MEDIABOX-CLIP+))
 		   (prog1 (loop for page-no below (fz-count-pages ctx doc)
-				append (let ((page (fz-load-page ctx doc page-no)))
-					 (unless (cffi:null-pointer-p page)
-					   (prog1 (extract-links-in-page ctx page stext-opts
-									 :external-links-only-p
-									 external-links-only-p)
-					     (fz-drop-page ctx page)))))
+				for alist = (let ((page (fz-load-page ctx doc page-no)))
+					      (unless (cffi:null-pointer-p page)
+						(prog1 (extract-links-in-page ctx page stext-opts
+									      :external-links-only-p
+									      external-links-only-p)
+						  (fz-drop-page ctx page))))
+				when alist collect (list page-no alist))
 		     (fz-drop-document ctx doc)))))
 	(fz-drop-context ctx)))))
 
 
 #+nil
-(extract-links "/dev/shm/1.pdf")
+(extract-links "/dev/shm/1.pdf" :external-links-only-p t)
