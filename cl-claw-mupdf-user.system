@@ -24,6 +24,7 @@
    :components (
 		"package"
 		(:file "use-package" :load-only t)
+		(:file "stext-iters")
                ))
 
 #+nil
