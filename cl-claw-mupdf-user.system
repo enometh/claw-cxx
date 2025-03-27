@@ -25,6 +25,7 @@
 		"package"
 		(:file "use-package" :load-only t)
 		(:file "stext-iters")
+		(:file "extract-links")
                ))
 
 #+nil

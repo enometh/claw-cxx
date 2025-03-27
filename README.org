@@ -237,3 +237,14 @@ resect, the adapter generates functions for the definitions.
   gcc -o mupdf-static-inlines.so -shared mupdf-static-inlines.o -lm -Wl,--export-dynamic
   objdump -t mupdf-static-inlines.so
 #+end_src
+
+* Example: extract pdf links
+#+begin_src lisp
+;;; load claw-mupdf-user
+;madhu 250326
+(require 'claw-cxx/util)
+(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
+(load (merge-pathnames "cl-claw-mupdf-user.system" *cl-claw-mupdf-source-dir*))
+(mk:oos :cl-claw-mupdf-user :load)
+(cl-claw-mupdf::extract-links "/dev/shm/1.pdf" :external-links-only-p t)
+#+end_src
