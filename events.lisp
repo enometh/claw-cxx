@@ -101,9 +101,11 @@
   (etypecase event
     (symbol
      (with-sdl-event (ev event)
+       #+nil
        (setf (sdl-event-type ev)
 	     (get-event-code event))
        (check-rc (sdl-push-event ev))))
+    ;; remember this will never fire for events like sdl-keyboard-event which are not subtypes of sdl-event.
     (sdl-event
      (check-rc (sdl-push-event event)))
     (sdl-user-event
@@ -143,7 +145,7 @@ Stores the optional user-data in sdl2::*user-events*"
 
 (defun expand-quit-handler (sdl-event forms quit)
   (declare (ignore sdl-event))
-  `(:quit (setf ,quit (funcall #'(lambda () ,@forms)))))
+  `(:sdl-event-quit (setf ,quit (funcall #'(lambda () ,@forms)))))
 
 
 (defparameter *event-type-to-accessor*
@@ -195,11 +197,15 @@ Stores the optional user-data in sdl2::*user-events*"
 #||
 (cffi:foreign-enum-value 'sdl-event-type :sdl-event-mouse-wheel)
 (cdr (assoc :sdl-event-mouse-wheel *event-type-to-accessor*))
-(apropos (event-type-to-accessor  :sdl-event-mouse-wheel))
-(event-type-to-accessor :sdl-event-window-shown)
+(apropos (event-type-to-event-accessor  :sdl-event-mouse-wheel))
+(event-type-to-event-accessor :sdl-event-window-shown)
 ||#
 
-(defun event-type-to-accessor (event-type)
+
+;; this returns the accessor to retrieve the specic event-type from
+;; sdl-event
+(defun event-type-to-event-accessor (event-type)
+  (check-type event-type keyword)
   (let* ((ref (or (cdr (assoc event-type *event-type-to-accessor*))
 		  :user))
 	 (name (format nil "SDL-EVENT-~A" (string ref)))
@@ -210,21 +216,93 @@ Stores the optional user-data in sdl2::*user-events*"
       (fdefinition sym))
     sym))
 
+#+nil
+(eql (event-type-to-event-accessor :sdl-event-key-down) 'SDL-EVENT-KEY)
+
+#||
+(defvar $c (cffi::ensure-parsed-base-type 'claw-cxx-sdl3::sdl-event))
+(sort
+ (mapcar (lambda (n)
+	   (cons (intern (symbol-name n) :keyword)
+		 (cffi::foreign-slot-type 'claw-cxx-sdl3::sdl-event n)))
+	 (cffi:foreign-slot-names $c))
+ (lambda (a b) (string< (car a) (car b))))
+(eql #1='sdl-mouse-button-event (find-symbol (symbol-name #1#) :claw-cxx-sdl3))
+||#
+
+(defvar *event-type-to-class*
+  '((:adevice . sdl-audio-device-event) (:button . sdl-mouse-button-event)
+    (:cdevice . sdl-camera-device-event) (:clipboard . sdl-clipboard-event)
+    (:common . sdl-common-event) (:display . sdl-display-event)
+    (:drop . sdl-drop-event) (:edit . sdl-text-editing-event)
+    (:edit-candidates . sdl-text-editing-candidates-event)
+    (:gaxis . sdl-gamepad-axis-event) (:gbutton . sdl-gamepad-button-event)
+    (:gdevice . sdl-gamepad-device-event) (:gsensor . sdl-gamepad-sensor-event)
+    (:gtouchpad . sdl-gamepad-touchpad-event) (:jaxis . sdl-joy-axis-event)
+    (:jball . sdl-joy-ball-event) (:jbattery . sdl-joy-battery-event)
+    (:jbutton . sdl-joy-button-event) (:jdevice . sdl-joy-device-event)
+    (:jhat . sdl-joy-hat-event) (:kdevice . sdl-keyboard-device-event)
+    (:key . sdl-keyboard-event) (:mdevice . sdl-mouse-device-event)
+    (:motion . sdl-mouse-motion-event) (:padding . uint8)
+    (:paxis . sdl-pen-axis-event) (:pbutton . sdl-pen-button-event)
+    (:pmotion . sdl-pen-motion-event) (:pproximity . sdl-pen-proximity-event)
+    (:ptouch . sdl-pen-touch-event) (:quit . sdl-quit-event)
+    (:render . sdl-render-event) (:sensor . sdl-sensor-event)
+    (:text . sdl-text-input-event) (:tfinger . sdl-touch-finger-event)
+    (:type . uint32) (:user . sdl-user-event) (:wheel . sdl-mouse-wheel-event)
+    (:window . sdl-window-event)))
+
+(defun event-type-to-slot-accessor (event-type slots)
+  (check-type event-type keyword)
+  (let ((elt (assoc event-type *event-type-to-accessor*)))
+    (unless elt (error "no such event: ~A." event-type))
+    (when elt
+      (loop for slot in (alexandria:ensure-list slots)
+	    collect
+	    (let* ((indicator (cdr elt))
+		   (cobj-event-type-name
+		    (cdr (assoc indicator *event-type-to-class*)))
+		   (slot-accessor-name
+		    (find-symbol (concatenate 'string
+					      (symbol-name cobj-event-type-name)
+					      "-"
+					      (symbol-name slot))
+				 "CLAW-CXX-SDL3")))
+	      (unless (and slot-accessor-name
+			   (fboundp slot-accessor-name))
+		(let* ((cffi-type-name cobj-event-type-name)
+		       (cffi-type
+			(cffi::ensure-parsed-base-type cffi-type-name))
+		       (slots (and cffi-type
+				   (cffi:foreign-slot-names cffi-type))))
+		(error "no slot named ~A in ~A: ~:[no such type~;available slots: ~:*~A~]."
+		       slot cobj-event-type-name slots)))
+	      slot-accessor-name)))))
+
+
+#+nil
+(event-type-to-slot-accessor :sdl-event-key-down '(scancode :key :mod))
+;; => (SDL-KEYBOARD-EVENT-SCANCODE SDL-KEYBOARD-EVENT-KEY SDL-KEYBOARD-EVENT-MOD)
 
 (defun unpack-event-params (event-var event-type params)
   (mapcar (lambda (param)
-            (let ((keyword (first param))
-                  (binding (second param))
-                  (ref (or (cdr (assoc event-type *event-type-to-accessor*))
-                           :user))
-		  (acc (event-type-to-accessor event-type)))
+            (let* ((keyword (first param))
+		   (binding (second param))
+		   (ref (or (cdr (assoc event-type *event-type-to-accessor*))
+			    :user))
+		   (acc (event-type-to-event-accessor event-type))
+		   (slot-acc (event-type-to-slot-accessor event-type keyword)))
               (if (eql keyword :user-data)
                   `(,binding (get-user-data (sdl-user-event-code (,acc ,event-var))))
                   (if (and (or (eql ref :text) (eql ref :edit)) (eql keyword :text))
                       `(,binding (cffi:foreign-string-to-lisp
-				  (,acc ,event-var)))
-                      `(,binding (,acc ,event-var))))))
+				  (,(car slot-acc) (,acc ,event-var))))
+                      `(,binding (,(car slot-acc) (,acc ,event-var)))))))
           params))
+
+#+nil
+(unpack-event-params 'ev :sdl-event-key-down '((:scancode key)))
+;; => ((KEY (SDL-KEYBOARD-EVENT-SCANCODE (SDL-EVENT-KEY EV))))
 
 (defun expand-handler (sdl-event event-type params forms)
   (let ((parameter-pairs nil))
@@ -238,6 +316,11 @@ Stores the optional user-data in sdl2::*user-events*"
                                    event-type
                                    (nreverse parameter-pairs)))
         ,@forms))))
+
+#+nil
+(expand-handler 'ev :sdl-event-key-down '(:scancode sym) '(1 2 3))
+;; => (:SDL-EVENT-KEY-DOWN (LET ((SYM (SDL-KEYBOARD-EVENT-SCANCODE (SDL-EVENT-KEY EV)))) 1 2 3))
+
 
 ;; TODO you should be able to specify a target framerate
 (defmacro with-event-loop ((&key background (method :poll) (timeout nil) recursive)
@@ -260,7 +343,7 @@ Stores the optional user-data in sdl2::*user-events*"
                   (loop :until ,quit
                         :do (loop :as ,rc = (next-event ,sdl-event ,method ,timeout)
                                   ,@(if (eq :poll method)
-                                        `(:until (= 0 ,rc))
+                                        `(:until (null ,rc))
                                         `(:until ,quit))
                                   :do (let* ((,sdl-event-type (get-event-type ,sdl-event))
                                              (,sdl-event-id (and (user-event-type-p ,sdl-event-type)
@@ -280,3 +363,15 @@ Stores the optional user-data in sdl2::*user-events*"
                             (unless ,quit
                               (funcall ,idle-func))))
              (setf *event-loop* nil)))))))
+
+#+nil
+(with-init (:video)
+  (with-window (win :flags '(:opengl))
+    (with-event-loop (:method :poll)
+      (:sdl-event-key-down (:scancode scancode)
+       (format t "HANDLING KEY DOWN EVENT~%")
+       (when (eql scancode :sdl-scancode-escape)
+	 (format t "QUITTING~%")
+         (push-event :sdl-event-quit)))
+      (:idle () (delay 300))
+      (:quit () t))))
