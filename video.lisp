@@ -133,14 +133,60 @@ $rect
     (:centered (windowpos-centered))
     (t n)))
 
+;; generate a table of window-flags (short form keywords used as
+;; arguments to create-window , to the integer values)
+#+nil
+(let ((alist nil))
+  (do-symbols (sym (find-package "CLAW-CXX-SDL3"))
+    (let ((name (symbol-name sym)))
+      (when (and (user:prefixp #1="+SDL-WINDOW-" name)
+		 (user:suffixp "+" name))
+	(let ((val (symbol-value sym)))
+	  (if (and val (numberp val)  (> val 0))
+	      (push (cons (intern (subseq name (length #1#) (1- (length name))) :keyword) val) alist)
+	      (warn "skip ~A" sym))))))
+  (sort alist #'(lambda (a b)
+		  (string< (symbol-name (car a))
+			   (symbol-name (car b))))))
+
+;; generated from the above form
+(defvar *window-flags-keywords-alist*
+  '((:always-on-top . 65536)
+    (:borderless . 16)
+    (:external . 2048)
+    (:fullscreen . 1)
+    (:hidden . 8)
+    (:high-pixel-density . 8192)
+    (:input-focus . 512)
+    (:keyboard-grabbed . 1048576)
+    (:maximized . 128)
+    (:metal . 536870912)
+    (:minimized . 64)
+    (:modal . 4096)
+    (:mouse-capture . 16384)
+    (:mouse-focus . 1024)
+    (:mouse-grabbed . 256)
+    (:mouse-relative-mode . 32768)
+    (:not-focusable . 2147483648)
+    (:occluded . 4)
+    (:opengl . 2)
+    (:popup-menu . 524288)
+    (:resizable . 32)
+    (:tooltip . 262144)
+    (:transparent . 1073741824)
+    (:utility . 131072)
+    (:vulkan . 268435456)))
+
 (defun handle-sdl-window-flags (window-flags)
   (etypecase window-flags
     (integer window-flags)
+    (null 0)
     (symbol
-     (let* ((name (format nil "+~:@(SDL-WINDOW-~A~)+" window-flags))
-	    (sym (find-symbol name :claw-cxx-sdl3)))
-       (assert sym nil "~A: ~A not found" window-flags name)
-       (symbol-value sym)))
+     (let ((elt (assoc window-flags *window-flags-keywords-alist*)))
+       (if (numberp (cdr elt))
+	   (cdr elt)
+	   (error "window flag keyword ~A: ~A not found"
+		  window-flags (car elt)))))
     (cons (cond ((endp (cdr window-flags))
 		 (assert (symbolp (car window-flags)))
 		 (handle-sdl-window-flags (car window-flags)))
@@ -247,14 +293,10 @@ Specifying `:windowed` or `:desktop` is \"windowed\" fullscreen, using
   ;; Do NOT free the returned surface.
   (check-nullptr (sdl-get-window-surface win)))
 
-
 (defun window-flags-to-keyword (flags)
-  (loop for sym in '(FULLSCREEN OPENGL OCCLUDED HIDDEN BORDERLESS RESIZABLE MINIMIZED MAXIMIZED MOUSE-GRABBED INPUT-FOCUS MOUSE-FOCUS EXTERNAL MODAL HIGH-PIXEL-DENSITY MOUSE-CAPTURE MOUSE-RELATIVE-MODE ALWAYS-ON-TOP UTILITY TOOLTIP POPUP-MENU KEYBOARD-GRABBED VULKAN METAL TRANSPARENT NOT-FOCUSABLE)
-	for nam =  (concatenate 'string "+SDL-WINDOW-" (string sym) "+")
-	for var = (find-symbol nam "CLAW-CXX-SDL3")
-	for val = (symbol-value var)
+  (loop for (sym . val) in *window-flags-keywords-alist*
 	when (not (zerop (logand val flags)))
-	collect (intern (string sym) :keyword)))
+	collect sym))
 
 #+nil
 (window-flags-to-keyword (handle-sdl-window-flags '(:fullscreen :opengl)))
