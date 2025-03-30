@@ -77,12 +77,18 @@
   :binary-pathname *cl-claw-sdl3-binary-dir*
   :source-extension "lisp"
   :depends-on ( :cl-claw-sdl3/library
-	       :trivial-channels)
+	       :trivial-channels
+	       :cl-opengl)
   :components ("sdl3"
 	       "rect"
 	       "video"
 	       "events"
-	       "keyboard"))
+	       "keyboard"
+	       (:file "cffi-callback-manager" :if-feature (:not :girlib))
+	       "properties"
+	       "timer"
+	       "surface"
+	       "render"))
 
 #+nil
 (mk:oos :cl-claw-sdl3/sdl3 :load :compile-during-load t)
