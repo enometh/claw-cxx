@@ -9,7 +9,7 @@
 (cl:in-package "CLAW-CXX-SDL3-USER")
 
 (eval-when (load eval compile)
-(defvar $conflicts
+(defparameter $conflicts
   (claw.util::use-spec-package "CLAW-CXX-SDL3"
 			       "CLAW-CXX-SDL3-USER"
 			       :dry-run-p nil)))
@@ -66,5 +66,12 @@
 
 ;; #+nil
 (progn
+(with-simple-restart (cont "Cont")
 (assert
-(set-equal (claw.util::use-spec-package :claw-cxx-sdl3 :claw-cxx-sdl3-user :dry-run-p t) $conflicts)))
+    (set-equal (sort (copy-list (claw.util::use-spec-package :claw-cxx-sdl3 :claw-cxx-sdl3-user :dry-run-p t))
+		     #'string< :key #'symbol-name)
+	       (sort (copy-list $conflicts)
+		     #'string< :key #'symbol-name)))))
+
+#+nil
+(unintern 'CLAW-CXX-SDL3:X 'claw-cxx-sdl3)
