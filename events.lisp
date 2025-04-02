@@ -304,8 +304,25 @@ Stores the optional user-data in sdl2::*user-events*"
 (unpack-event-params 'ev :sdl-event-key-down '((:scancode key)))
 ;; => ((KEY (SDL-KEYBOARD-EVENT-SCANCODE (SDL-EVENT-KEY EV))))
 
+(defvar +all-sdl-event-types+  (cffi:foreign-enum-keyword-list 'sdl-event-type))
+
+(defun expand-event-type (event-type)
+  ;; could use handle-short-enum-keyword.
+  (if (find event-type +all-sdl-event-types+)
+      event-type
+      (let ((sym (find-symbol (concatenate 'string "SDL-EVENT-" (string event-type)) :keyword)))
+	(if (and sym (find sym +all-sdl-event-types+))
+	    sym
+	    (error "Unknown sdl-event-type ~A. see +all-sdl-event-types+ for long form of required keyword." event-type)))))
+
+#+nil
+(expand-event-type :key-up)
+
 (defun expand-handler (sdl-event event-type params forms)
-  (let ((parameter-pairs nil))
+  (let ((parameter-pairs nil)
+	(event-type (if (member event-type '(:quit :idle))
+			event-type
+			(expand-event-type event-type))))
     (do ((keyword params (if (cdr keyword)
                              (cddr keyword)
                              nil)))
