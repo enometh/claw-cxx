@@ -785,7 +785,8 @@ have to be accessed explictly (i.e. via SPEC-PACKAGE::SYM)."
 		   for nam = (symbol-name ext-sym)
 		   for (sym status) = (multiple-value-list
 				       (find-symbol nam package))
-		   do (assert (not (eql (symbol-name sym) spec-package)))
+;; ;madhu 250402 wtf was this assert about?
+;;		   do (assert (not (eql (symbol-name sym) spec-package)))
 		   if (and status (not (eql sym ext-sym)))
 		   collect sym)))
     (setq spec-package (find-package spec-package))
