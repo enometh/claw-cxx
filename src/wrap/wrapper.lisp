@@ -122,7 +122,7 @@
   exclude-definitions)
 
 
-(defmacro selected-parse-option (opts name)
+(defmacro selected-parse-option (opts name &aux (*package* (find-package "CLAW.WRAPPER")))
   (let ((accessor-name (symbolicate 'parse-options- name)))
     (once-only (opts)
       (with-gensyms (target)
