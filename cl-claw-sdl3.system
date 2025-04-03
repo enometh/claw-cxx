@@ -89,7 +89,8 @@
 	       "timer"
 	       "surface"
 	       "render"
-	       "sdl3-package"))
+	       "sdl3-package"
+	       "triangle-utils"))
 
 #+nil
 (mk:oos :cl-claw-sdl3/sdl3 :load :compile-during-load t)
