@@ -73,9 +73,12 @@
   (gl-set-attr :sdl-gl-context-major-version (or major 2))
   (gl-set-attr :sdl-gl-context-minor-version (or minor 1)))
 
+(defvar *alt-event-handler* nil)
+
 (defun main ()
   (let ((bt:*default-special-bindings*
-	 `((*request-gl-fn* . ,*request-gl-fn*))))
+	 `((*request-gl-fn* . ',*request-gl-fn*)
+	   (*alt-event-handler* . ',*alt-event-handler*))))
     (unwind-protect
 	 (with-init (:video)
 	   (when *request-gl-fn* (funcall *request-gl-fn*))
@@ -85,7 +88,7 @@
 	       (setq *gl* gl)
 	       (progn
 		 (when *init-fn* (funcall *init-fn*))
-		 (with-event-loop (:method :poll)
+		 (with-event-loop (:method :poll :cow-catcher *alt-event-handler*)
 		   (:key-down (:scancode scancode)
 		    (format t "HANDLING KEY DOWN EVENT~%")
 		    (when (eql scancode :sdl-scancode-escape)
@@ -101,15 +104,19 @@
       (setq *init-fn* nil)
       (setq *render-fn* nil))))
 
-(defun runmain (&key gles-p major minor)
+(defun runmain (&key gles-p major minor alt-event-handler)
   (reset-main)
   (mapcar 'bt:destroy-thread (bt-find-threads "background-tripad"))
   (let ((bt:*default-special-bindings*
 	 `((*request-gl-fn* . ,(if (or gles-p major minor)
-				   (lambda () (request-gl :profile (if gles-p :es)
+				   (lambda () (request-gl :profile
+							  (ecase gles-p
+							    ((nil :core :es :compat) gles-p)
+							    ((t) :es))
 							  :major (or major (and gles-p 3))
-							  :minor (or minor (and gles-p 1)))))))))
-  (bt:make-thread #'main :name "background-tripad")))
+							  :minor (or minor (and gles-p 1))))))
+	   (*alt-event-handler* . ',alt-event-handler))))
+    (bt:make-thread #'main :name "background-tripad")))
 
 (defun stopmain ()
   (in-main-thread () (push-event :sdl-event-quit)))
