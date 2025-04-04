@@ -340,7 +340,8 @@ Stores the optional user-data in sdl2::*user-events*"
 
 
 ;; TODO you should be able to specify a target framerate
-(defmacro with-event-loop ((&key background (method :poll) (timeout nil) recursive)
+(defmacro with-event-loop ((&key background (method :poll) (timeout nil) recursive
+				 cow-catcher)
                            &body event-handlers)
   (let ((quit (gensym "QUIT-"))
         (sdl-event (gensym "SDL-EVENT-"))
@@ -365,6 +366,9 @@ Stores the optional user-data in sdl2::*user-events*"
                                   :do (let* ((,sdl-event-type (get-event-type ,sdl-event))
                                              (,sdl-event-id (and (user-event-type-p ,sdl-event-type)
                                                                  (sdl-user-event-code ,sdl-event))))
+					,@(and cow-catcher
+					       `((and ,cow-catcher
+						      (funcall ,cow-catcher ,sdl-event))))
                                         (case ,sdl-event-type
                                           (:lisp-message () (get-and-handle-messages))
                                           ,@(loop :for (type params . forms) :in event-handlers
