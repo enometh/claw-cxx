@@ -881,15 +881,39 @@ have to be accessed explictly (i.e. via SPEC-PACKAGE::SYM)."
 
 ;; all MAKE-* functions return lisp forms.
 
+(defstruct (if-feature (:print-function print-feature-hack))
+  feature form)
+
+(defstruct (if-not-feature (:include if-feature)))
+
+(defun print-feature-hack (obj stream depth)
+  (declare (ignore depth))
+  (if (not (if-feature-feature obj))
+      (print-unreadable-object (obj stream :type t :identity t))
+      (format stream "#~C:~A ~S"
+	      (etypecase obj
+		(if-not-feature #\-)
+		(if-feature #\+))
+	      (if-feature-feature obj)
+	      (if-feature-form obj))))
+
 (defun make-bindings-module ()
   `(:module "bindings"
     :components
     ((:file "x86_64-pc-linux-gnu"
       :if-feature
-      (:and :x86-64 :linux))
+      (:and :x86-64 :linux)
+      #+lispworks-personal-edition
+      ,@(list
+	 (make-if-feature :feature :lispworks-personal-edition
+			  :form :load-only)
+	 (make-if-feature :feature :lispworks-personal-edition
+			  :form t)))
      (:file "i686-pc-linux-gnu"
       :if-feature (:and :x86 :linux)))))
 
+#+nil
+(make-bindings-module)
 
 ;; handle `compiler-options' for the `:claw-cxx-adapter' language.
 
