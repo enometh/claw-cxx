@@ -14,7 +14,8 @@
 (eval-when (load eval compile)
 (defvar $compiler-options (setup-compiler-options)))
 
-(claw.util:claw-cxx-defsystems #.$system-name
+(macroexpand-1
+ '(claw.util:claw-cxx-defsystems #.$system-name
 			       :source-pathname $base-dir
 			       :dll-pathname (merge-pathnames "lib/" $base-dir)
 			       :binary-pathname
@@ -23,7 +24,7 @@
 				 (user::binary-directory ""))
 			       (user::binary-directory $base-dir))
 			       :generate-adapter-p t
-			       :compiler-options #.$compiler-options)
+			       :compiler-options #.$compiler-options))
 
 
 (defun dump-defsystem-file (&key (if-exists :supersede))
