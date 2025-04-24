@@ -1,0 +1,18 @@
+* cepl.cl-claw-sdl3 - experimental  cl-claw-sdl3 backend for cepl
+
+** local config
+#+begin_src lisp
+;; load the cl-claw-sdl3/sdl3 system somehow
+(load "~/cl/extern/cl-claw-sdl3/1.l")
+
+;; load system definitions for cepl and rtg-math
+(load "~/cl/extern/Github/cepl/1.l")
+(load "~/cl/extern/Github/rtg-math/rtg-math.system")
+;; (require 'cepl)
+;; (require 'rtg-math.vari)
+
+(load "~/cl/extern/cl-claw-sdl3/cepl/cepl.cl-claw-sdl3.system")
+
+(mk:oos  :cepl.cl-claw-sdl3.example :load)
+;; see example.lisp for minimal example
+#+end_src
