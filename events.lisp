@@ -284,6 +284,7 @@ Stores the optional user-data in sdl2::*user-events*"
 (event-type-to-slot-accessor :sdl-event-key-down '(scancode :key :mod))
 ;; => (SDL-KEYBOARD-EVENT-SCANCODE SDL-KEYBOARD-EVENT-KEY SDL-KEYBOARD-EVENT-MOD)
 
+
 (defun unpack-event-params (event-var event-type params)
   (mapcar (lambda (param)
             (let* ((keyword (first param))
@@ -338,6 +339,23 @@ Stores the optional user-data in sdl2::*user-events*"
 (expand-handler 'ev :sdl-event-key-down '(:scancode sym) '(1 2 3))
 ;; => (:SDL-EVENT-KEY-DOWN (LET ((SYM (SDL-KEYBOARD-EVENT-SCANCODE (SDL-EVENT-KEY EV)))) 1 2 3))
 
+;;; alternative
+(defun %expand-handler (event-var event-type params forms)
+  (setq event-type (expand-event-type event-type))
+  `(,event-type
+     (let (,@(loop for (keyword binding) in
+		   (loop for keyword = params then (if (cdr keyword) (cddr keyword))
+			 until (null keyword)
+			 collect (list (first keyword) (second keyword)))
+		   for ref = (or (cdr (assoc event-type *event-type-to-accessor*))
+				 :user)
+		   for acc = (event-type-to-event-accessor event-type)
+		   for slot-acc = (event-type-to-slot-accessor event-type keyword)
+		   collect `(,binding (,(car slot-acc) (,acc ,event-var)))))
+       ,@forms)))
+
+#+nil
+(%expand-handler 'sdl-event :quit '(:timestamp ts) '((+ 2 3)))
 
 ;; TODO you should be able to specify a target framerate
 (defmacro with-event-loop ((&key background (method :poll) (timeout nil) recursive
