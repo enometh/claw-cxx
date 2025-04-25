@@ -29,6 +29,24 @@
 (null (scancode-key-to-value :kp-enter))
 ||#
 
+(defvar +all-sdl-scancode+ (cffi:foreign-enum-keyword-list 'sdl-scancode))
+
+(defun expand-sym-in-list-with-prefix (key list prefix)
+  (check-type key keyword)
+  (if (find key list)
+      key
+      (let* ((str (concatenate 'string prefix "-" (string key)))
+	     (sym (find-symbol str :keyword)))
+	(if (and sym (find sym list))
+	    sym
+	    (error "Unknown ~S ~A (~A). Wanted one of ~S" prefix key sym list)))))
+
+(defun expand-scancode (key)
+  (expand-sym-in-list-with-prefix key +all-sdl-scancode+ "SDL-SCANCODE"))
+
+#+nil
+(eql (expand-scancode :kp-enter) :sdl-scancode-kp-enter)
+
 (defun scancode-key-to-value (scancode-key)
   "Converts a scancode keyword to its numerical value."
   (cffi:foreign-enum-value 'sdl-scancode scancode-key :errorp nil))
