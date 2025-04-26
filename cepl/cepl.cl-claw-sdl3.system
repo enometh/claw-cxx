@@ -36,3 +36,15 @@
 
 #+nil
 (mk:oos :cepl.cl-claw-sdl3.example :load :compile-during-load t)
+
+(mk:defsystem :skitter.cl-claw-sdl3
+  :source-pathname *cl-claw-sdl3-source-dir*
+  :binary-pathname *cl-claw-sdl3-binary-dir*
+  :source-extension "lisp"
+  :depends-on ( :cepl.cl-claw-sdl3 :skitter :rtg-math.vari)
+  :components ((:module "cepl"
+		:components ((:file "skitter.cl-claw-sdl3")))))
+
+#+nil
+(mk:oos :skitter.cl-claw-sdl3 :load :compile-during-load t)
+

@@ -116,17 +116,34 @@
 	  (otherwise ,otherwise)))
      (sdl3:free-event ,event)))
 
-(let ((listeners nil))
-  ;;
-  (defun sdl-register-listener (func)
-    (unless (find func listeners)
-      (push func listeners)))
-  ;;
-  (defun sdl-step-v1 (surface)
-    (declare (ignore surface))
-    (%case-events (event
-		   :otherwise (loop :for listener :in listeners :do (funcall listener event)))))
-      )
+;; $listeners used to be a lexically closed over variable. This may
+;; have avoided thread safety issues but also made it undebuggable and
+;; unresettable without inventing a based-Scheme object-system.
+;;
+;; other good-to-have cepl patches: Use pushnew instead of push in
+;; cepl.context::discard-context-id.  use global variables instead of
+;; lexical variables in cepl.host::register-event-listener and friends
+;; (in api-0.lisp), so these can be inspected and reset by the user.
+;;
+;; also the single entry point of skitter into cepl is
+;; (cepl:register-event-listener 'skitter.sdl3::on-event), which calls
+;; cepl.host::register-event-listener, which calls
+;; sdl-register-listner. cepl.host::register-event-listener should
+;; patched to use the parameter NIL to cancel an existing registration
+;; function, like we cancel listener registrations below.
+
+(defvar $listeners nil)
+
+(defun sdl-register-listener (func)
+  (if func
+      (unless (find func $listeners)
+	(push func $listeners))
+      (setq $listeners nil)))
+
+(defun sdl-step-v1 (surface)
+  (declare (ignore surface))
+  (%case-events (event
+		 :otherwise (loop :for listener :in $listeners :do (funcall listener event)))))
 
 ;;----------------------------------------------------------------------
 

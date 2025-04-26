@@ -15,4 +15,12 @@
 
 (mk:oos  :cepl.cl-claw-sdl3.example :load)
 ;; see example.lisp for minimal example
+
+;; skitter prereqs
+(load "~/cl/extern/Github/Authors/cbaggers/structy-defclass/structy-defclass.system")
+(load "~/cl/extern/Github/Authors/cbaggers/glsl-spec/glsl-spec.system")
+(load "~/cl/extern/Github/vas-string-metrics/vas-string-metrics.system")
+(load "~/cl/extern/Github/Authors/cbaggers/fn/fn.system")
+(load "~/cl/extern/Github/Authors/cbaggers/skitter/skitter.system")
+(mk:oos :skitter.cl-claw-sdl3 :load)
 #+end_src
