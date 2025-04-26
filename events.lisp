@@ -204,20 +204,26 @@ Stores the optional user-data in sdl2::*user-events*"
 
 ;; this returns the accessor to retrieve the specic event-type from
 ;; sdl-event
-(defun event-type-to-event-accessor (event-type)
+(defun event-type-to-event-accessor (event-type &key user-ok)
+  "If USER-OK non-NIL and EVENT-TYPE is not found, assume EVENT-TYPE is a
+:sdl-user-event."
   (check-type event-type keyword)
-  (let* ((ref (or (cdr (assoc event-type *event-type-to-accessor*))
-		  :user))
-	 (name (format nil "SDL-EVENT-~A" (string ref)))
-	 (sym (find-symbol name "CLAW-CXX-SDL3")))
-    (assert (fboundp sym))
-    #+nil
-    (when (fboundp sym)
-      (fdefinition sym))
-    sym))
+  (let ((ref (or (cdr (assoc event-type *event-type-to-accessor*))
+		 (and user-ok :user))))
+    (assert ref nil "Unknown event-type ~A in *event-type-to-accessor*" event-type)
+    (let* ((name (format nil "SDL-EVENT-~A" (string ref)))
+	   (sym (find-symbol name "CLAW-CXX-SDL3")))
+      (assert (fboundp sym))
+      #+nil
+      (when (fboundp sym)
+	(fdefinition sym))
+      (values sym ref))))
 
 #+nil
 (eql (event-type-to-event-accessor :sdl-event-key-down) 'SDL-EVENT-KEY)
+
+#+nil
+(eql (event-type-to-event-accessor :sdl-event-barf :user-ok t) 'SDL-EVENT-USER)
 
 #||
 (defvar $c (cffi::ensure-parsed-base-type 'claw-cxx-sdl3::sdl-event))
@@ -287,19 +293,18 @@ Stores the optional user-data in sdl2::*user-events*"
 
 (defun unpack-event-params (event-var event-type params)
   (mapcar (lambda (param)
-            (let* ((keyword (first param))
-		   (binding (second param))
-		   (ref (or (cdr (assoc event-type *event-type-to-accessor*))
-			    :user))
-		   (acc (event-type-to-event-accessor event-type))
-		   (slot-acc (event-type-to-slot-accessor event-type keyword)))
-              (if (eql keyword :user-data)
-                  `(,binding (get-user-data (sdl-user-event-code (,acc ,event-var))))
-                  (if (and (or (eql ref :text) (eql ref :edit)) (eql keyword :text))
-                      `(,binding (cffi:foreign-string-to-lisp
-				  (,(car slot-acc) (,acc ,event-var))))
-                      `(,binding (,(car slot-acc) (,acc ,event-var)))))))
-          params))
+            (let ((keyword (first param))
+		  (binding (second param)))
+	      (multiple-value-bind (acc ref)
+		   (event-type-to-event-accessor event-type :user-ok (eql keyword :user-data))
+		(let ((slot-acc (event-type-to-slot-accessor event-type keyword)))
+		  (if (eql keyword :user-data)
+		      `(,binding (get-user-data (sdl-user-event-code (,acc ,event-var))))
+		      (if (and (or (eql ref :text) (eql ref :edit)) (eql keyword :text))
+			  `(,binding (cffi:foreign-string-to-lisp
+				      (,(car slot-acc) (,acc ,event-var))))
+			  `(,binding (,(car slot-acc) (,acc ,event-var)))))))))
+	  params))
 
 #+nil
 (unpack-event-params 'ev :sdl-event-key-down '((:scancode key)))
