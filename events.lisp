@@ -192,7 +192,12 @@ Stores the optional user-data in sdl2::*user-events*"
     (:sdl-event-window-minimized . :window)
     (:sdl-event-window-resized . :window)
     (:sdl-event-window-restored . :window)
-    (:sdl-event-window-shown . :window)))
+    (:sdl-event-window-shown . :window)
+    (:sdl-event-window-moved . :window)
+    (:sdl-event-window-high-pixel-density . :window)
+    (:sdl-event-window-pixel-size-changed . :window)
+    (:sdl-event-allow-input-grabbed . :window)
+    (:sdl-event-quit . :quit)))
 
 #||
 (cffi:foreign-enum-value 'sdl-event-type :sdl-event-mouse-wheel)
