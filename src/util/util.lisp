@@ -228,13 +228,22 @@
 			  #+(and asdf (not mk-defsystem))
 			  (asdf:component-pathname component)
 			  #+mk-defsystem
-			  (or (mk::component-source-pathname component)
+			  (or (case (mk::component-type component)
+				((:system :defsystem :subsystem)
+				 (mk::component-root-dir component :source))
+				(otherwise
+				 (mk::component-full-pathname component :source)))
 			      *default-pathname-defaults*)
 			  nil))
         (null #+(and asdf (not mk-defsystem))
 	      (asdf:component-pathname component)
 	      #+mk-defsystem
-	      (mk::component-source-pathname component))
+	      (or (case (mk::component-type component)
+		    ((:system :defsystem :subsystem)
+		     (mk::component-root-dir component :source))
+		    (otherwise
+		     (mk::component-full-pathname component :source)))
+		  *default-pathname-defaults*))
         (t (asdf-path (%find-asdf-component-child component (first path)))))))
 
 
