@@ -147,6 +147,7 @@ into CL's boolean type system."
   (unless *main-thread-channel*
     (setf *main-thread-channel* (trivial-channels:make-channel))))
 
+#+nil
 (defun make-this-thread-main (&optional function)
   "Designate the current thread as the SDL3 main thread. This function will not return until
 `SDL3:QUIT` is handled. Users of this function will need to start other threads before this call, or
