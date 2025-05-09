@@ -212,8 +212,37 @@
 ;; 290
 ||#
 
+(defun make-skitter-pkg-form (name alist)
+  (let ((*package* (or (find-package name) (make-package name :use nil))))
+    `(progn
+       (cl:defpackage ,name
+	 (:use)
+	 (:export ,@(mapcar #'cdr alist)))
+       ,@(loop for (num . nam) in alist
+	       collect `(cl:defparameter ,(cl:intern nam) ,num)))))
+
+(defvar +keys+
+  (loop for i from 0 to 280
+	with prefix = #1="SDL-SCANCODE-"
+	and len = (cl:length #1#)
+	for key = (ignore-errors (cffi:foreign-enum-keyword 'sdl-scancode i))
+	when key collect (cons i (concatenate 'string "KEY."
+					      (subseq (string key) len)))))
+
+(eval (make-skitter-pkg-form "SKITTER.SDL3.KEYS" +keys+))
+
 (defmethod initialize-kind :after ((kind keyboard))
   (loop repeat 290 do (add kind (make-boolean-control))))
+
+(defvar +mouse-buttons+
+  (loop for i from 1 to 8
+	collect (cons i (concatenate
+			 'string "MOUSE."
+			 (case i
+			   (1 "LEFT") (3 "MIDDLE") (2 "RIGHT")
+			   (otherwise (cl:format nil "OTHER~D" i)))))))
+
+(eval (make-skitter-pkg-form "SKITTER.SDL3.MOUSE-BUTTONS" +mouse-buttons+))
 
 (defmethod initialize-kind :after ((kind mouse))
   (loop repeat 8 do (add kind (make-boolean-control))))
