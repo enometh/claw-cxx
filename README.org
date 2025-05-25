@@ -1,2 +1,8 @@
 #+PROPERTY: header-args :results silent raw drawer
 * cl-claw-sdl3 - wrap libImlib2
+
+** SYNOPSIS
+#+begin_src lisp
+(load "~/cl/extern/cl-claw-imlib2/claw-cxx-imlib2.system")
+(mk:oos  :claw-cxx-imlib2.bindings :load)
+#+end_src
