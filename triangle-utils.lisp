@@ -134,6 +134,165 @@
   (sdl-gl-swap-window *win*))
 ||#
 
+
+
+;;; ----------------------------------------------------------------------
+;;;
+;;; lifecycle app abstraction
+;;;
+
+(defpackage "TRI-APP"
+  (:use)
+  (:export
+   "WIN" "GL"
+   "LIFECYCLE-MIXIN"
+   "SETUP-FN"
+   "START"
+   "UPDATE-FN"
+   "CLEANUP-FN" "DRAW-FN"
+   "REQUEST-GL-FN"
+   "LAUNCH"
+   "SHUTDOWN"
+   "RESTART-PIPELINE"
+   "*APP*"
+   "APPLY-IN-EVENT-LOOP"
+   "IN-EVENT-LOOP"))
+
+
+(defclass tri-app:lifecycle-mixin ()
+  ((title :initform "TRIPAD-WINDOW" :initarg :title)
+   (x :initform :centered :initarg :x)
+   (y :initform :centered :initarg :y)
+   (w :initform 800 :initarg :w)
+   (h :initform 600 :initarg :h)
+   (gles-p :initform nil :initarg :gles-p)
+   (sdl-window-flags :initform '(:opengl) :initarg :sdl-window-flags)
+   (sdl-init-flags :initform '(:video) :initarg :sdl-init-flags)
+   (opengl-version-major :initform 3 :initarg :opengl-major)
+   (opengl-version-minor :initform 3 :initarg :opengl-minor)
+   (win :initform nil :accessor tri-app:win)
+   (gl :initform nil :accessor tri-app:gl)
+   (request-gl-p :initform nil :initarg :request-gl-p :accessor request-gl-p)
+   (render-fn-p :initform nil :initarg :render-fn-p :accessor render-fn-p)
+   (main-thread :initform nil)
+   (alt-event-handler-p :initform nil :initarg :alt-event-handler-p
+			:accessor alt-event-handler-p)))
+
+
+(defgeneric tri-app:setup-fn (lifecycle-mixin))
+
+(defgeneric tri-app:draw-fn (lifecycle-mixin)
+  (:method :after ((app tri-app:lifecycle-mixin))
+   (with-slots (win) app
+     (gl-swap-window win))))
+
+(defgeneric tri-app:update-fn (lifecycle-mixin sdl-event))
+
+(defgeneric tri-app:cleanup-fn (lifecycle-mixin))
+
+(defmethod tri-app:request-gl-fn ((app tri-app:lifecycle-mixin))
+  (with-slots (gles-p opengl-version-major opengl-version-minor) app
+    (request-gl :profile
+		(ecase gles-p
+		  ((nil :core :es :compat) gles-p)
+		  ((t) :es))
+		:major (or opengl-version-major (and gles-p 3))
+		:minor (or opengl-version-minor (and gles-p 1)))))
+
+
+(define-condition tri-app:restart-pipeline (condition) ())
+
+(defmethod tri-app:start ((app tri-app:lifecycle-mixin))
+  (assert (/= 0 (register-user-event-type :eval-event)))
+  (with-slots (main-thread) app
+    (assert (or (null main-thread)
+		(not (bt:thread-alive-p main-thread))))
+    (setq main-thread (bt:current-thread)))
+  (with-slots (win
+	       x y w h title sdl-init-flags sdl-window-flags
+	       alt-event-handler-p
+	       render-fn-p
+	       gl request-gl-p)
+      app
+    (apply #'init sdl-init-flags)
+    (unwind-protect
+	 (in-main-thread ()
+	   (when request-gl-p
+	     (tri-app:request-gl-fn app))
+	   (unwind-protect
+		(progn
+		  (setq win (create-window :title title :x x :y y :w w :flags sdl-window-flags))
+		  (unwind-protect
+		       (progn
+			 (setq gl (gl-create-context win))
+			 (unwind-protect
+			      (prog ((quit nil)
+				     (idle-fn
+				      (lambda ()
+					(cond (render-fn-p (tri-app:draw-fn app))
+					      (t (delay 1000))))))
+			       restart-pipeline
+				 (format t "---> SETUP~%")
+				 (tri-app:setup-fn app)
+				 (unwind-protect
+				      (handler-case
+					  (with-sdl-event (sdl-event)
+					    (loop :until quit
+						  :do (loop :as rc = (next-event sdl-event :poll nil)
+							    :until (null rc)
+							    :do (let* ((sdl-event-type (get-event-type sdl-event))
+								       (sdl-event-id (and (user-event-type-p sdl-event-type)
+											  (sdl-user-event-code sdl-event))))
+								  (when alt-event-handler-p
+								    (tri-app:update-fn app sdl-event))
+								  (case sdl-event-type
+								    (:lisp-message nil (get-and-handle-messages))
+								    (:eval-event
+								     (let ((data (get-user-data (sdl-user-event-code sdl-event))))
+								       (format t "---> BINGO~%")
+								       (with-simple-restart (cont "CONT")
+									 (funcall data))))
+								    (:sdl-event-key-down
+								     (let ((scancode (sdl-keyboard-event-scancode
+										      (sdl-event-key sdl-event))))
+								       (format t "HANDLING KEY DOWN EVENT~%")
+								       (when (eql scancode :sdl-scancode-escape)
+									 (push-event :sdl-event-quit))))
+								    (:idle (funcall idle-fn))
+								    (:sdl-event-quit (setq quit t)))
+								  (when (and sdl-event-id
+									     (not (eq sdl-event-type :lisp-message)))
+								    (free-user-data sdl-event-id))))
+						  (when (not quit) (funcall idle-fn))))
+					(tri-app:restart-pipeline (c)
+					  (declare (ignore c))
+					  (go restart-pipeline)))
+				   (tri-app:cleanup-fn app)))
+			   (gl-delete-context gl)))
+		    (destroy-window win)))))
+      (quit))))
+
+(defvar tri-app:*app* nil)
+
+(defmethod tri-app:launch ((app tri-app:lifecycle-mixin))
+  (reset-main)
+  (with-slots (main-thread) app
+    (assert (or (null main-thread)
+		(not (bt:thread-alive-p main-thread)))))
+  (setq tri-app:*app* app)
+  (bt:make-thread (lambda () (tri-app:start app))
+		  :name (format nil "background runner for ~A" app)))
+
+(defmethod tri-app:shutdown ((app tri-app:lifecycle-mixin))
+  (in-main-thread () (push-event :sdl-event-quit)))
+
+(defmethod tri-app:apply-in-event-loop ((app tri-app:lifecycle-mixin) func &rest args)
+  (push-user-event :eval-event  (lambda () (apply func args))))
+
+(defmacro tri-app:in-event-loop (&body body)
+  `(tri-app:apply-in-event-loop tri-app:*app* (lambda () ,@body)))
+
+
 
 ;;; ----------------------------------------------------------------------
 ;;;
