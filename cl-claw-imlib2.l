@@ -76,6 +76,7 @@ definitions are exported.")
   (merge-pathnames (format nil "~(~A.system~)" $system-name)
 		    $base-dir))
 
+#+nil ;; no system library
 (defvar $system-library-name
   (intern (format nil "~@:(~A.library~)" $system-name) :keyword)
   "The name <system-name>.library for the mk-defsystem system which
@@ -138,7 +139,8 @@ specifies the location of the shared dll for the c adapter code.")
   :trim-enum-prefix common-lisp:nil
   :recognize-bitfields common-lisp:t
   :recognize-strings common-lisp:t
-  :with-adapter (:dynamic :path "lib/adapter.c"))
+  ;; :with-adapter (:dynamic :path "lib/adapter.c")
+  )
 
 ;; load libresect to generate the bindings
 
