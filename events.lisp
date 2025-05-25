@@ -115,7 +115,7 @@
   "Allocates a new user-defined sdl event struct of the specified type and pushes it into the queue.
 Stores the optional user-data in sdl2::*user-events*"
   (if (user-event-type-p user-event)
-      (with-sdl-event (event user-event)
+      (with-sdl-event (event (if (symbolp user-event) (get-event-code user-event) user-event))
         (let ((event-id (add-user-data user-data)))
 	  (setf (sdl-user-event-code (sdl-event-user event))
 		event-id)
@@ -302,9 +302,10 @@ Stores the optional user-data in sdl2::*user-events*"
 		  (binding (second param)))
 	      (multiple-value-bind (acc ref)
 		   (event-type-to-event-accessor event-type :user-ok (eql keyword :user-data))
-		(let ((slot-acc (event-type-to-slot-accessor event-type keyword)))
-		  (if (eql keyword :user-data)
-		      `(,binding (get-user-data (sdl-user-event-code (,acc ,event-var))))
+		;; ;madhu 250525 what if :user-data is not supplied?
+		(if (eql keyword :user-data)
+		    `(,binding (get-user-data (sdl-user-event-code ,event-var)))
+		    (let ((slot-acc (event-type-to-slot-accessor event-type keyword)))
 		      (if (and (or (eql ref :text) (eql ref :edit)) (eql keyword :text))
 			  `(,binding (cffi:foreign-string-to-lisp
 				      (,(car slot-acc) (,acc ,event-var))))
@@ -318,6 +319,8 @@ Stores the optional user-data in sdl2::*user-events*"
 (defvar +all-sdl-event-types+  (cffi:foreign-enum-keyword-list 'sdl-event-type))
 
 (defun expand-event-type (event-type)
+  (if (user-event-type-p event-type)
+      (return-from expand-event-type event-type))
   ;; could use handle-short-enum-keyword.
   (if (find event-type +all-sdl-event-types+)
       event-type
