@@ -134,12 +134,16 @@ specifies the location of the shared dll for the c adapter code.")
      (:defines)
      (:targets
       ((:and :x86-64 :linux) "x86_64-pc-linux-gnu"))
-     (:include-definitions "."))
+;;     (:include-definitions ".")
+     ;; (:exclude-definitions "^$")
+     (:include-definitions "[Ii]mlib"))
   :in-package #.$package-name
-  :trim-enum-prefix common-lisp:nil
+  :trim-enum-prefix common-lisp:t
   :recognize-bitfields common-lisp:t
   :recognize-strings common-lisp:t
   ;; :with-adapter (:dynamic :path "lib/adapter.c")
+  :symbolicate-names (:in-pipeline
+                      (:by-removing-prefixes "imlib_" "IMLIB_"))
   )
 
 ;; load libresect to generate the bindings
