@@ -143,7 +143,7 @@ specifies the location of the shared dll for the c adapter code.")
   :recognize-strings common-lisp:t
   ;; :with-adapter (:dynamic :path "lib/adapter.c")
   :symbolicate-names (:in-pipeline
-                      (:by-removing-prefixes "imlib_" "IMLIB_"))
+                      (:by-removing-prefixes "imlib_" "IMLIB_" "Imlib_"))
   )
 
 ;; load libresect to generate the bindings
