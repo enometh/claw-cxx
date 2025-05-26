@@ -138,7 +138,7 @@ specifies the location of the shared dll for the c adapter code.")
      ;; (:exclude-definitions "^$")
      (:include-definitions "[Ii]mlib"))
   :in-package #.$package-name
-  :trim-enum-prefix common-lisp:t
+  :trim-enum-prefix common-lisp:nil
   :recognize-bitfields common-lisp:t
   :recognize-strings common-lisp:t
   ;; :with-adapter (:dynamic :path "lib/adapter.c")
