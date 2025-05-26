@@ -6,3 +6,34 @@
 (load "~/cl/extern/cl-claw-imlib2/claw-cxx-imlib2.system")
 (mk:oos  :claw-cxx-imlib2.bindings :load)
 #+end_src
+
+** EXAMPLE
+#+begin_src lisp
+(defpackage "IMLIB-USER" (:use "CL"))
+(in-package "IMLIB-USER")
+(cl-user:package-add-nicknames "CLAW-CXX-IMLIB2" "IMLIB")
+
+,#+nil
+(unless (cffi:find-foreign-library "Imlib2")
+  (cffi:load-foreign-library "libImlib2.so"))
+
+(defvar $error-return (cffi:foreign-alloc 'imlib:load-error))
+(imlib:load-image-with-error-return "/dev/null" $error-return)
+(cffi:mem-ref $error-return 'imlib:load-error) ;IMAGE-READ
+
+(defvar $image (imlib:load-image "/tmp/1.jpg"))
+(imlib:context-set-image $image)
+(imlib:image-get-height)
+(imlib:image-get-width)
+(imlib:image-format)
+(imlib:image-get-filename)
+
+"The image data is returned in the format of a uint32_t (32 bits) per pixel in a linear array ordered from the top left of the image to the bottom right going from left to right each line. Each pixel has the upper 8 bits as the alpha channel and the lower 8 bits are the blue channel - so a pixel's bits are ARGB (from most to least significant,8 bits per channel),"
+
+(defvar $bgra-data
+  (cffi:foreign-array-to-lisp
+   (imlib:image-get-data)
+   `(:array :uint8  ,(* (imlib:image-get-height) (imlib:image-get-width) 4))))
+
+(length $rgb-data)
+#+end_src
