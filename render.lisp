@@ -167,13 +167,15 @@ at subpixel precision."
 ;;* SDL_RenderDrawLineF() => SDL_RenderLine(), returns bool
 (defun render-draw-line (renderer x1 y1 x2 y2)
   "Use this function to draw a line on the current rendering target."
-  (check-rc (sdl-render-line renderer x1 y1 x2 y2)))
+  (check-rc (sdl-render-line renderer (float x1) (float y1) (float x2) (float y2))))
 
 ;;* SDL_RenderDrawLines() => SDL_RenderLines(), returns bool
 ;;* SDL_RenderDrawLinesF() => SDL_RenderLines(), returns bool
 (defun render-draw-lines (renderer points num-points)
   "Pass a pointer to SDL_Point to render connected lines on the current rendering target."
-  (check-rc (sdl-render-lines renderer points num-points)))
+  (assert (cffi:pointerp points))
+  (check-rc (%sdl-render-lines (cobj:cobject-pointer renderer)
+			       points num-points)))
 
 ;;* SDL_RenderDrawPoint() => SDL_RenderPoint(), returns bool
 ;;* SDL_RenderDrawPointF() => SDL_RenderPoint(), returns bool
