@@ -77,6 +77,9 @@ into CL's boolean type system."
                        (trivial-channels:sendmsg *main-thread-channel* (cons ,fun ,channel))
                        ,(unless no-event
                           '(push-event *wakeup-event*))
+		       ;; madhu 250605 FATAL HANG FLAW if
+		       ;; *main-thread* goes away we are stuck here in
+		       ;; recvmsg
                        (let ((result (trivial-channels:recvmsg ,channel)))
                          (etypecase result
                            (list (values-list result))
