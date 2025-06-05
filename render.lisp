@@ -32,11 +32,12 @@
 ;; SDL_CreateWindowAndRenderer() now takes the window title as the first parameter.
 
 (defun create-window-and-renderer (width height flags &key (title "CLAW-CXX-SDL3"))
-  (let ((window (make-sdl-window))
-	(renderer (make-sdl-renderer)))
+  (let ((window (cffi:foreign-alloc :pointer))
+	(renderer (cffi:foreign-alloc :pointer)))
     (check-rc
-     (sdl-create-window-and-renderer title width height flags window renderer))
-    (values window renderer)))
+     (%sdl-create-window-and-renderer title width height (handle-sdl-window-flags flags) window renderer))
+    (values (cobj:manage-cobject (cobj:pointer-cpointer (cffi:mem-ref window :pointer) 'sdl-window))
+	    (cobj:manage-cobject (cobj:pointer-cpointer (cffi:mem-ref renderer :pointer) 'sdl-renderer)))))
 
 ;; SDL_CreateRenderer()'s second argument is no longer an integer index, but a const char * representing a renderer's name; if you were just using a for-loop to find which index is the "opengl" or whatnot driver, you can just pass that string directly here, now. Passing NULL is the same as passing -1 here in SDL2, to signify you want SDL to decide for you.
 
