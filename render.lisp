@@ -187,7 +187,9 @@ at subpixel precision."
 ;;* SDL_RenderDrawPointsF() => SDL_RenderPoints(), returns bool
 (defun render-draw-points (renderer points num-points)
   "Use this function to draw multiple points on the current rendering target."
-  (check-rc (sdl-render-points renderer points num-points)))
+  (assert (cffi:pointerp points))
+  (check-rc (%sdl-render-points (cobj:cobject-pointer renderer)
+			       points num-points)))
 
 ;;* SDL_RenderDrawRect() => SDL_RenderRect(), returns bool
 ;;* SDL_RenderDrawRectF() => SDL_RenderRect(), returns bool
@@ -199,7 +201,8 @@ at subpixel precision."
 ;;* SDL_RenderDrawRects() => SDL_RenderRects(), returns bool
 (defun render-draw-rects (renderer rects num-rects)
   "Use this function to draw some number of rectangles on the current rendering target."
-  (check-rc (sdl-render-rects renderer rects num-rects)))
+  (assert (cffi:pointerp rects))
+  (check-rc (%sdl-render-rects (cobj:cobject-pointer renderer) rects num-rects)))
 
 ;;* SDL_RenderFillRectF() => SDL_RenderFillRect(), returns bool
 (defun render-fill-rect (renderer sdl-rect)
@@ -214,7 +217,8 @@ the drawing color,  at subpixel precision."
   "Use this function to fill some number of rectangles on the current
 rendering target with the drawing color at subpixel
 precision."
-  (check-rc (sdl-render-fill-rects renderer rects num-rects)))
+  (assert (cffi:pointerp rects))
+  (check-rc (%sdl-render-fill-rects (cobj:cobject-pointer  renderer) rects num-rects)))
 
 ;; skip render-fill-rects-f
 
