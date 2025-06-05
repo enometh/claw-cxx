@@ -1,0 +1,18 @@
+(defpackage #:cl-claw-sdl3-examples
+  (:use #:cl)
+  (:shadowing-import-from "CL"
+   "CONDITION" "POSITION" "REM" "CLOSE" "SECOND" "TYPE" "FORMAT" "WRITE" "READ" "MOD" "LENGTH" "PHASE" "REMOVE" "FUNCTION")
+  (:use "CL" "SDL3" "CLAW-CXX-SDL3"))
+
+;; NOTE: "SDL3" == "CLAW-CXX-SDL3-USER" (unfortunate name, should be fixed at some point)
+
+#||
+(in-package "CL-CLAW-SDL3-EXAMPLES")
+(claw.util:use-spec-package "CLAW-CXX-SDL3-USER"  "CL-CLAW-SDL3-EXAMPLES" :dry-run-p t)
+(claw.util:use-spec-package "CLAW-CXX-SDL3"  "CL-CLAW-SDL3-EXAMPLES" :dry-run-p t)
+;; => (CLAW-CXX-SDL3:FUNCTION CLAW-CXX-SDL3:REM CLAW-CXX-SDL3:FORMAT
+;;  CLAW-CXX-SDL3:WRITE CLAW-CXX-SDL3:PHASE CLAW-CXX-SDL3:POSITION
+;;  CLAW-CXX-SDL3:CLOSE CLAW-CXX-SDL3:SECOND CLAW-CXX-SDL3:READ
+;;  CLAW-CXX-SDL3:LENGTH CLAW-CXX-SDL3:TYPE CLAW-CXX-SDL3:CONDITION
+;;  CLAW-CXX-SDL3:MOD CLAW-CXX-SDL3:REMOVE)
+||#
