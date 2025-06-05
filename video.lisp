@@ -331,6 +331,7 @@ Specifying `:windowed` or `:desktop` is \"windowed\" fullscreen, using
   (check-nullptr (sdl-gl-create-context win)))
 
 (defun gl-delete-context (gl-context)
+  #+nil
   (warn "SDL_GL_DeleteContext() has been renamed to SDL_GL_DestroyContext to match SDL naming conventions (and glX/EGL!).")
   (sdl-gl-destroy-context  gl-context)
   (values))
