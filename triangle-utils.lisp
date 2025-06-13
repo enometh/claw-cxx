@@ -150,6 +150,7 @@
    "START"
    "UPDATE-FN"
    "CLEANUP-FN" "DRAW-FN"
+   "RESIZE-FN"
    "REQUEST-GL-FN"
    "LAUNCH"
    "SHUTDOWN"
@@ -189,6 +190,11 @@
 (defgeneric tri-app:update-fn (lifecycle-mixin sdl-event))
 
 (defgeneric tri-app:cleanup-fn (lifecycle-mixin))
+
+(defgeneric tri-app:resize-fn (lifecycle-mixin new-w new-h)
+  (:method ((app tri-app:lifecycle-mixin) new-w new-h)
+   (format t "TRI-APP:RESIZE-FN: ~A" (list new-w new-h))
+   (gl:viewport 0 0 new-w new-h)))
 
 (defmethod tri-app:request-gl-fn ((app tri-app:lifecycle-mixin))
   (with-slots (gles-p opengl-version-major opengl-version-minor) app
@@ -252,6 +258,12 @@
 								       (format t "---> BINGO~%")
 								       (with-simple-restart (cont "CONT")
 									 (funcall data))))
+								    (:sdl-event-window-resized ()
+								     (with-slots (win w h) app
+								       (multiple-value-bind (new-width new-height)
+									   (get-window-size win)
+									 (setq w new-width h new-height)
+									 (tri-app:resize-fn app new-width new-height))))
 								    (:sdl-event-key-down
 								     (let ((scancode (sdl-keyboard-event-scancode
 										      (sdl-event-key sdl-event))))
