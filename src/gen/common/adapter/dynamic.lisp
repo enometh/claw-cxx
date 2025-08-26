@@ -16,7 +16,10 @@
 
 (defun load-dynamic-adapter-template ()
   (alexandria:read-file-into-string
-   (mk::system-relative-pathname :claw-cxx/generator/common
+   (#+(and asdf (not mk-defsystem))
+      asdf::system-relative-pathname
+      #+mk-defsystem
+      mk::system-relative-pathname :claw-cxx/generator/common
                                   "src/gen/common/adapter/template/dynamic.c")))
 
 
