@@ -37,7 +37,8 @@
 (defvar $system-includes-paths nil)
 
 (defvar $system-includes-paths
-  (list "/home/madhu/root/usr/include"))
+  #+nil(list "/home/madhu/root/usr/include")
+  (list "/usr/include"))
 
 (defvar $includes-paths
   (list
@@ -49,7 +50,8 @@
 (defvar $link-libs-paths nil)
 
 (defvar $link-libs-paths
-  (list "/home/madhu/root/usr/lib64/"))
+  #+nil (list "/home/madhu/root/usr/lib64/")
+  (list "/usr/lib64/"))
 
 (defvar $default-ldflags
   (list "-Wl,--enable-new-dtags"

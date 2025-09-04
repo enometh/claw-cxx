@@ -25,6 +25,8 @@
 (require 'cl-claw-sdl3/base-config)
 (in-package "CLAW-CXX-SDL3-USER")
 *package*
+#+nil
+(setup-base-dir-defaults "/14/build/EXT-LISP/claw-cxx-sdl3/")
 
 ;;; to generate bindings
 #+nil
@@ -48,8 +50,8 @@
 (dump-defsystem-file :if-exists :supersede))
 
 ;;; load defsystem
-#+nil
-(load "/dev/shm/claw-cxx-sdl3/claw-cxx-sdl3.system")
+;;#+nil
+(load  $system-file)
 
 #||
 ;; alternate config
@@ -102,6 +104,7 @@
 ||#
 
 ;; compile and load cobj bindings with new defn of cffi:defcfun.
+#+nil
 (mk:oos :claw-cxx-sdl3.bindings :load :force nil :propagate nil)
 
 #||
@@ -117,6 +120,7 @@
 ;;; from CLAW-CXX-SDL3-USER
 ;;;
 
+#+nil
 (mk:oos :cl-claw-sdl3/library :load :compile-during-load t)
 
 
@@ -125,11 +129,12 @@
 ;;; LISP LAYER OVER SDL3
 ;;;
 
-#+nil
+;;#+nil
 (progn
+(load "~/cl/extern/Github/cl-opengl/cl-opengl.system")
 (load "~/cl/extern/Github/trivial-channels/trivial-channels.system"))
 
-#+nil
+;; #+nil
 (mk:oos :cl-claw-sdl3/sdl3 :load)
 
 
