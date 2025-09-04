@@ -1,0 +1,46 @@
+
+(MAKE:DEFSYSTEM "claw-cxx-sdl3.bindings"
+                :SOURCE-PATHNAME
+                CLAW-CXX-SDL3-USER::$BASE-DIR
+                :BINARY-PATHNAME
+                (COMMON-LISP:IF CLAW-CXX-SDL3-USER::$FASL-ROOT
+                                (COMMON-LISP:LET
+                                 ((COMMON-LISP-USER::*BINARY-DIRECTORY-FASL-ROOT*
+                                   CLAW-CXX-SDL3-USER::$FASL-ROOT))
+                                 (LC-LITE:BINARY-DIRECTORY ""))
+                                (LC-LITE:BINARY-DIRECTORY
+                                 CLAW-CXX-SDL3-USER::$BASE-DIR))
+                :SOURCE-EXTENSION
+                "lisp"
+                :DEPENDS-ON
+                ("uiop" "cffi")
+                :COMPONENTS
+                ((:MODULE "gen" :COMPONENTS
+                  ((:MODULE "bindings" :COMPONENTS
+                    ((:FILE "x86_64-pc-linux-gnu" :IF-FEATURE
+                      (:AND :X86-64 :LINUX))
+                     (:FILE "i686-pc-linux-gnu" :IF-FEATURE
+                      (:AND :X86 :LINUX))))))))
+
+(MAKE:DEFSYSTEM "claw-cxx-sdl3.library"
+                :SOURCE-PATHNAME
+                CLAW-CXX-SDL3-USER::$BASE-DIR
+                :BINARY-PATHNAME
+                (COMMON-LISP:MERGE-PATHNAMES
+                  "lib/"
+                  CLAW-CXX-SDL3-USER::$BASE-DIR)
+                :SOURCE-EXTENSION
+                "lisp"
+                :DEPENDS-ON
+                ("uiop" "cffi")
+                :COMPONENTS
+                ((:MODULE "gen" :COMPONENTS
+                  ((:MODULE "lib" :COMPONENTS
+                    ((:FILE "adapter.x86_64-pc-linux-gnu"
+                      :SOURCE-EXTENSION "c" :IF-FEATURE
+                      (:AND :X86-64 :LINUX) :LANGUAGE
+                      :CLAW-CXX-ADAPTER :COMPILER-OPTIONS
+                      (:CFLAGS
+                       " -isystem /usr/include -I /14/build/EXT-LISP/claw-cxx-sdl3/"
+                       :LDFLAGS
+                       "-Wl,--enable-new-dtags -Wl,-rpath,/usr/lib64/ -l SDL3 -L /usr/lib64/"))))))))
