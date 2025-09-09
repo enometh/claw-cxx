@@ -263,10 +263,27 @@ Stores the optional user-data in sdl2::*user-events*"
     (:type . uint32) (:user . sdl-user-event) (:wheel . sdl-mouse-wheel-event)
     (:window . sdl-window-event)))
 
-(defun event-type-to-slot-accessor (event-type slots)
+(defun event-type-to-class-name-and-slot-names (event-type)
+  (let ((indicator (cdr (assoc event-type *event-type-to-accessor*))))
+    (when indicator
+      (let ((class (cdr (assoc indicator *event-type-to-class*))))
+	(when class
+	  (values class
+		  (cffi:foreign-slot-names
+		   (cffi::ensure-parsed-base-type class))
+		  #+nil
+		  (mapcar (lambda (slot) (slot-value slot 'cffi::name))
+			  (cffi::slots-in-order (cffi::parse-type class)))))))))
+
+#+nil
+(event-type-to-class-name-and-slot-names :sdl-event-mouse-wheel)
+
+(defun event-type-to-slot-accessor (event-type &optional slots)
   (check-type event-type keyword)
   (let ((elt (assoc event-type *event-type-to-accessor*)))
     (unless elt (error "no such event: ~A." event-type))
+    (unless slots
+      (setq slots (nth-value 1 (event-type-to-class-name-and-slot-names event-type))))
     (when elt
       (loop for slot in (alexandria:ensure-list slots)
 	    collect
