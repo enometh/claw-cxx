@@ -16,6 +16,45 @@ pkg-config --libs libdrm
  :headers ( "xf86drm.h" "xf86drmMode.h" )
  :system-includes ("/usr/include" "/usr/include/libdrm"))
 
+
+;;; ----------------------------------------------------------------------
+;;;
+;;;
+
+;;; CLAW BUG ENUMS DEFINED INSIDE STRUCTS
+
+
+#||
+;; Unknown CFFI type CLAW-CXX-LIBDRM::|C:@S@DRM-BUF-DESC@E@DRM.H@9489|
+;; Unknown CFFI type CLAW-CXX-LIBDRM::|C:@S@DRM-CONTROL@E@DRM.H@4770|
+
+sed -i \
+-e 's/claw-cxx-libdrm::|C:@S@DRM-BUF-DESC@E@DRM.H@9489|/:unsigned-long/g' \
+-e 's/claw-cxx-libdrm::|C:@S@DRM-CONTROL@E@DRM.H@4770|/:unsigned-long/' \
+ "/dev/shm/claw-cxx-libdrm/gen/bindings/x86_64-pc-linux-gnu.lisp"
+
+(cffi:defctype CLAW-CXX-LIBDRM::C\:@S@DRM-BUF-DESC@E@DRM.H@9489 :unsigned-long)
+(cffi:defctype  CLAW-CXX-LIBDRM::C\:@S@DRM-CONTROL@E@DRM.H@4770 :unsigned-long)
+||#
+
+#||
+/7/gtk/libresect/build/resect-test -I /usr/include/drm /usr/include/drm/drm.h
+(cd /usr/include/libdrm && cl-bindgen f -a -I/usr/include/drm -- /usr/include/drm/drm.h)
+(cd /usr/include && cl-bindgen f stdio.h)
+cl-bindgen f -h
+cl-bindgen -h
+anonymous enums defined in structs not processed by claw-cxx
+
+(cffi:defcstruct (claw-cxx-libdrm::drm-control :size 8)
+  (claw-cxx-libdrm::func :unsigned-long ;; edited
+   :offset 0)
+  (claw-cxx-libdrm::irq :int :offset 4))
+
+(cffi:defcstruct (claw-cxx-libdrm::drm-control :size 8)
+  (claw-cxx-libdrm::func :unsigned-long ;; edited
+   :offset 0)
+  (claw-cxx-libdrm::irq :int :offset 4))
+||#
 
 (claw.wrapper:defwrapper ("claw-cxx-libdrm"
 			  #+cl:nil
