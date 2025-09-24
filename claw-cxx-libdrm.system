@@ -1,0 +1,71 @@
+;;; -*- Mode: LISP; Package: :cl-user; BASE: 10; Syntax: ANSI-Common-Lisp; -*-
+;;;
+;;;   Time-stamp: <>
+;;;   Touched: Wed Sep 24 04:59:06 2025 +0530 <enometh@net.meer>
+;;;   Bugs-To: enometh@net.meer
+;;;   Status: Experimental.  Do not redistribute
+;;;   Copyright (C) 2025 Madhu.  All Rights Reserved.
+;;;
+(in-package "CL-USER")
+
+(wildset-lpn-translations "DRMSRC" "/dev/shm/claw-cxx-libdrm/" :wipe t)
+
+(defvar *claw-cxx-libdrm-source-dir*
+  (merge-pathnames "claw-cxx-libdrm/" (translate-logical-pathname "EXTERN:")))
+
+(defvar *claw-cxx-libdrm-binary-dir*
+  (let ((*binary-directory-fasl-root*
+	 (translate-logical-pathname #p"DRMSRC:;fasl;")))
+    (binary-directory "")))
+
+;; call (claw:generate-wrapper "claw-cxx-libdrm") by hand. generated
+;; sources checked into bindings/
+(mk:defsystem :claw-cxx-libdrm/gen
+   :source-pathname *claw-cxx-libdrm-source-dir*
+   :binary-pathname *claw-cxx-libdrm-binary-dir*
+   :source-extension "lisp"
+   :depends-on (:claw-cxx)
+   :components ((:file "gen")))
+
+#+nil
+(mk:oos :claw-cxx-libdrm/gen :load :compile-during-load t)
+
+;; guide
+#+nil
+(claw.util:claw-cxx-defsystems
+ "claw-cxx-libdrm"
+ :source-pathname "DRMSRC:gen;"
+ :binary-pathname "DRMSRC:fasl;"
+ :compiler-options (claw.util:make-compiler-options)
+ :dll-pathname "DRMSRC:lib;")
+
+(mk:defsystem :claw-cxx-libdrm
+   :source-pathname *claw-cxx-libdrm-source-dir*
+   :binary-pathname *claw-cxx-libdrm-binary-dir*
+   :source-extension "lisp"
+   :depends-on (:cffi-object)
+   :components
+   ((:file "base-package")
+    (:file "defcfn")
+    (:module "bindings"
+     :components
+     ((:file "x86_64-pc-linux-gnu"
+       #+:lispworks-personal-edition :load-only
+       #+:lispworks-personal-edition t
+       :if-feature (:and :x86-64 :linux))))
+    (:file "export")))
+
+#+nil
+(mk:oos :claw-cxx-libdrm :load :compile-during-load t)
+
+(mk:defsystem :cl-libdrm
+   :source-pathname *claw-cxx-libdrm-source-dir*
+   :binary-pathname *claw-cxx-libdrm-binary-dir*
+   :source-extension "lisp"
+   :depends-on (:claw-cxx-libdrm)
+   :components ((:file "libdrm-user")))
+
+#+nil
+(mk:oos :cl-libdrm :load :compile-during-load t)
+
+
