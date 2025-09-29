@@ -87,12 +87,13 @@ cobj::funcall-form-type
 	 ,finally-form))))
 
 (defun get-prop-prop-values (props)
-  "Return (PROP-ID .  VALUE)"
+  "Return list of (PROP-ID .  VALUE)"
   (loop for i below (drm-mode-object-properties-count-props props)
 	collect (cons (cobj:cref (drm-mode-object-properties-props props) i)
 		      (cobj:cref (drm-mode-object-properties-prop-values props) i))))
 
 (defun get-connector-properties (c)
+  "Return list of (CONN-ID ID PROP-VALUES)"
   (with-slots (fd) c
     (loop for c-id in (get-connectors c) collect
 	  (let-finally (c1 (drm-mode-get-connector fd c-id)
@@ -103,6 +104,7 @@ cobj::funcall-form-type
 	    (cl:list c-id
 		     (drm-mode-get-connector-type-name
 		      (drm-mode-connector-connector-type c1))
+		     #+nil
 		     (drm-mode-connector-connector-type-id c1)
 		     (let-finally (props (drm-mode-object-get-properties fd c-id +DRM-MODE-OBJECT-CONNECTOR+)
 					 (drm-mode-free-object-properties props))
@@ -112,13 +114,16 @@ cobj::funcall-form-type
 (get-connector-properties $c)
 
 (defun get-crtc-properties (c)
+  "Return list of (CRTC-ID ID PROP-VALUES)"
   (with-slots (fd) c
     (loop for c-id in (get-crtcs c) collect
 	  (let-finally (crtc (drm-mode-get-crtc fd c-id)
 			     (drm-mode-free-crtc crtc))
 	    (if (cobj-nullp crtc)
 		(sys-cerror "could not get crtc ~D" c-id))
+	    (assert (= c-id (%drm-mode-crtc-crtc-id crtc)))
 	    (cl:list c-id
+		     #+nil
 		     (%drm-mode-crtc-crtc-id crtc)
 		     (drm-mode-crtc-crtc-id crtc)
 		     (let-finally (props (drm-mode-object-get-properties fd c-id +DRM-MODE-OBJECT-CRTC+)
@@ -136,13 +141,12 @@ cobj::funcall-form-type
 (get-connectors $c)
 (get-crtcs $c)
 (cffi:null-pointer-p (cobj:cobject-pointer (drm-mode-get-connector (conn-fd $c) 10)))
-(get-connector-properties $c)
 (mapcar 'type-of (cl:list (conn-res $c) (drm-mode-get-resources (conn-fd $c))))
 (cobj:cpointer-eq (conn-res $c) (drm-mode-get-resources (conn-fd $c)))
 (cl:list (conn-res $c) (drm-mode-get-resources (conn-fd $c)))
 ||#
 
-(defun show-cobj (obj &aux (old-obj obj) converted-p)
+(defun cobj-show (obj &aux (old-obj obj) converted-p)
   (when (typep obj 'cobj:cpointer)
     (setq obj
 	  (cobj:pointer-cobject (cobj:cobject-pointer obj)
@@ -164,10 +168,10 @@ cobj::funcall-form-type
 +DRM-MODE-OBJECT-CRTC+
 (drm-mode-free-object-properties $props)
 (setq $props (drm-mode-object-get-properties (conn-fd $c) 241 +DRM-MODE-OBJECT-CONNECTOR+))
-(show-cobj $props)
-(show-cobj (cobj:cref $props 0))
+(cobj-show $props)
+(cobj-show (cobj:cref $props 0))
 (setq $p6 (cobj:cref $props 6))
-(show-cobj $p6)
+(cobj-show $p6)
 (setq $p6-prop (drm-mode-get-property (conn-fd $c) 6))
 (%dump-prop $p6-prop)
 ||#
@@ -197,6 +201,13 @@ cobj::funcall-form-type
 			  +DRM-MODE-PROP-BITMASK+
 			  +DRM-MODE-PROP-BLOB+
 			  +DRM-MODE-PROP-OBJECT+))
+
+#||
+(defun drm-mode-prop-type (n) (ash n 6))
+(= +DRM-MODE-PROP-OBJECT+ (drm-mode-prop-type 1))
+(= +DRM-MODE-PROP-SIGNED-RANGE+ (drm-mode-prop-type 2))
+(= +DRM-MODE-PROP-EXTENDED-TYPE+ 65472)
+||#
 
 ;; xf86drmMode.h static inlines
 (defun drm-mode-get-property-type (prop)
@@ -339,5 +350,17 @@ cobj::funcall-form-type
 		 (format stream "CRTC ~D~%" id)
 		 (list-object-properties c id +DRM-MODE-OBJECT-CRTC+ stream))))))
 
+;; proptest interface
+(defun list-all-properties (c)
+  (list-connector-properties c)
+  (list-crtc-properties c))
+
+#+nil
+(list-all-properties $c)
+
 (defun set-property (c obj-id obj-type prop-id value)
-  (drm-mode-object-set-property (conn-fd c) obj-id obj-type prop-id value))
+  (check-type obj-type (member #.+DRM-MODE-OBJECT-CONNECTOR+
+			       #.+DRM-MODE-OBJECT-CRTC+))
+  (if (< (drm-mode-object-set-property (conn-fd c)
+				       obj-id obj-type prop-id value))
+      (sys-error "error setting property")))
