@@ -340,6 +340,50 @@ struct drm_color_lut {
 (defun drm-property-type-is (prop type)
   (= (drm-mode-get-property-type prop) type))
 
+(defun get-prop-value-desc-plist (c prop-id value)
+  "Return a plist describing prop-id & prop-value in some convenient form."
+  (let ((prop (drm-mode-get-property (conn-fd c) prop-id)))
+    (cl:append
+     (cl:list :name
+	      (cobj:ccoerce (%drm-mode-property-name prop) 'string))
+     (cl:list :flags
+	      (let ((flags (%drm-mode-property-flags prop)))
+		(append (loop for f in (subseq $drm-mode-flags 0 2)
+			      if (plusp (logand flags (symbol-value f)))
+			      collect f)
+			(loop for f in (subseq $drm-mode-flags 2)
+			      if (drm-property-type-is prop (symbol-value f))
+			      collect f))))
+     (cl:list :range
+	      (when (drm-property-type-is prop +DRM-MODE-PROP-RANGE+)
+		(loop for i below (%drm-mode-property-count-values prop)
+		      collect (cobj:cref (%drm-mode-property-values prop) i))))
+     (cond ((drm-property-type-is prop +DRM-MODE-PROP-ENUM+)
+	    (cl:list :enum
+		     (loop for i below (%drm-mode-property-count-enums prop)
+			   for e = (cobj:cref (%drm-mode-property-enums prop) i)
+			   collect (cons (cobj:ccoerce (drm-mode-property-enum-name e) 'string)
+				       (drm-mode-property-enum-value e)))))
+	   ((drm-property-type-is prop +DRM-MODE-PROP-BITMASK+)
+	    (cl:list :values
+		     (loop for i below (%drm-mode-property-count-enums prop)
+			   for b = (cobj:cref (%drm-mode-property-enums prop) i)
+			   collect (cons (cobj:ccoerce (drm-mode-property-enum-name b) 'string)
+					 (ash 1 (drm-mode-property-enum-value b))))))
+	   (t (assert (zerop (%drm-mode-property-count-enums prop)))))
+     (cond ((drm-property-type-is prop +DRM-MODE-PROP-BLOB+)
+	    (cl:list :blobs
+		     (loop for i below (%drm-mode-property-count-blobs prop)
+			   collect (cobj:cref (%drm-mode-property-blob-ids prop) i))))
+	   (t (assert (zerop (%drm-mode-property-count-blobs prop)))))
+     (cl:list :prop-value
+	      (cond ((drm-property-type-is prop +DRM-MODE-PROP-BLOB+)
+		     value)
+		    ((drm-property-type-is prop +DRM-MODE-PROP-SIGNED-RANGE+)
+		     (let ((integer value) (size 64))
+		       (logior integer (- (mask-field (byte 1 (1- size)) integer)))))
+		    (t value))))))
+
 (defun %dump-prop (prop &optional (stream t))
   (declare (optimize (speed 0) (safety 3) (debug 3)))
   (format stream " ~A:~&"
