@@ -176,6 +176,122 @@ cobj::funcall-form-type
 (%dump-prop $p6-prop)
 ||#
 
+(defun get-blob-u8 (c blob-id)
+  (let-finally (blob (drm-mode-get-property-blob (conn-fd c) blob-id)
+		     (drm-mode-free-property-blob blob))
+    (if (cobj-nullp blob)
+	nil
+	(let* ((blob-data (%drm-mode-property-blob-data blob))
+	       (blob-ptr (cobj:cobject-pointer blob-data))
+	       (len (%drm-mode-property-blob-length blob)))
+	  (loop for i below len
+		collect (cffi:mem-aref blob-ptr :unsigned-char i))))))
+
+#||
+libdrm-2.4.125/include/drm/drm_mode.h:
+struct drm_color_lut {
+	/*
+	 * Values are mapped linearly to 0.0 - 1.0 range, with 0x0 == 0.0 and
+	 * 0xffff == 1.0.
+	 */
+	__u16 red;
+	__u16 green;
+	__u16 blue;
+	__u16 reserved;
+};
+||#
+
+(defun zero-out-reserved-field-u16 (u16)
+  (let ((i 0) (count 0))
+    (cl:map nil (lambda (x)
+		  (when (and (= (cl:mod i 4) 3) (not (zerop x)))
+		    (setf (elt u16 i) 0)
+		    (incf i) (incf count)))
+	    u16)
+    (cl:values u16 count)))
+
+(defun zero-out-reserved-field-u8 (u8)
+  (let ((i 0) (count 0))
+    (cl:map nil (lambda (x)
+		  (when (and (find (cl:mod i 8) '(6 7)) (not (zerop x)))
+		    (setf (elt u8 i) 0)
+		    (incf i) (incf count)))
+	    u8)
+    (cl:values u8 count)))
+
+(defun get-blob-u16 (c blob-id &key (zero-out-reserved-field nil))
+  (let-finally (blob (drm-mode-get-property-blob (conn-fd c) blob-id)
+		     (drm-mode-free-property-blob blob))
+    (if (cobj-nullp blob)
+	nil
+	(let* ((blob-data (%drm-mode-property-blob-data blob))
+	       (blob-ptr (cobj:cobject-pointer blob-data))
+	       (len (/ (%drm-mode-property-blob-length blob) 2)))
+	  (loop for i below len
+		collect (if (and zero-out-reserved-field
+				 (= (cl:mod i 4) 3))
+			    0
+			    (cffi:mem-aref blob-ptr :uint16 i)))))))
+
+(defun print-u8 (u8 &optional (stream t))
+  (loop for i below (cl:length u8)
+	if (zerop (cl:mod i 16))
+	do (format stream "~%~C~C~C" #\Tab #\Tab #\Tab)
+	end
+	do (format stream "~(~2,'0X~)" (elt u8 i))))
+
+#+nil
+(string-equal (with-output-to-string (s) (print-u8 #(#xf3 #x0a) s))
+ "
+			f30a")
+
+(defun print-u16 (u16 &optional (stream t))
+  (loop for i below (cl:length u16)
+	for n = (elt u16 i)
+	if (zerop (cl:mod i 8))
+	do (format stream "~%~C~C~C" #\Tab #\Tab #\Tab)
+	end
+	do (format stream "~(~2,'0X~2,'0X~)"
+		   (logand #xff n)
+		   (logand #xff (ash n -8)))))
+
+#+nil
+(string-equal (with-output-to-string (s) (print-u16 '(#xaf3) s))
+ "
+			f30a")
+
+(defun hex-string-to-usb8 (string &key (start 0) (end (cl:length string)))
+  "Ignores all non-hex characters"
+  (prog ((i start) a b ret)
+   check-termination
+     (unless (< i end)
+       (return (if (or a b)
+		   (nreconc ret (+ (* (or a 0) 16) (or b 0)))
+		   (nreverse ret))))
+     (unless a
+       (setq a (digit-char-p (elt string i) 16))
+       (incf i)
+       (go check-termination))
+     (unless b
+       (setq b (digit-char-p (elt string i) 16))
+       (incf i)
+       (push (+ (* a 16) b) ret)
+       (setq a nil b nil)
+       (go check-termination))))
+
+#+nil
+(equalp (hex-string-to-usb8 "f30a") '(#xf3 #x0a))
+
+(defun usb8->usb16-le (u8)
+  (loop for i below (cl:length u8) by 2
+	for a = (elt u8 i)
+	for b = (elt u8 (1+ i))
+	collect (+ (logand #xff a)
+		   (ash (logand #xff b) 8))))
+
+#+nil
+(equalp (usb8->usb16-le '(#xf3 #x0a))  '(#xaf3))
+
 (defun dump-blob (c blob-id &optional (stream t))
   (let-finally (blob (drm-mode-get-property-blob (conn-fd c) blob-id)
 		     (drm-mode-free-property-blob blob))
