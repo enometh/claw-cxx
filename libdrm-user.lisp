@@ -292,6 +292,10 @@ struct drm_color_lut {
 #+nil
 (equalp (usb8->usb16-le '(#xf3 #x0a))  '(#xaf3))
 
+(defun hex-string-to-usb16 (string &key (start 0) (end (cl:length string)))
+  "Ignores all non-hex characters"
+  (usb8->usb16-le (hex-string-to-usb8 string :start start :end end)))
+
 (defun dump-blob (c blob-id &optional (stream t))
   (let-finally (blob (drm-mode-get-property-blob (conn-fd c) blob-id)
 		     (drm-mode-free-property-blob blob))
