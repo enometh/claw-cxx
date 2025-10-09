@@ -105,6 +105,7 @@
 ;;;     x&y                 bitwise logical and            (logand x y)
 ;;;     x<<y                left shift                     (ash x y)
 ;;;     x>>y                right shift                    (ash x (- y))
+;;;     x>>>y               unsigned right shift           (ash x (- y))
 ;;;     ~x                  ones complement (unary)        (lognot x)
 ;;;     x and y             conjunction                    (and x y)
 ;;;     x && y              conjunction                    (and x y)
@@ -530,7 +531,7 @@
     ( ! ~ )				; lognot
     ( * /  % )                          ; % is mod
     ( + - )
-    ( << >> )
+    ( << >> >>> )
     ( < == > <= != >= )
     ( & )				; logand
     ( ^ )				; logxor
@@ -843,7 +844,10 @@
 	       '>=)
 	      ((char= (peek-char nil stream t nil t) #\>)
 	       (read-char stream t nil t)
-	       '>>)
+	       (cond ((char= (peek-char nil stream t nil t) #\>)
+		      (read-char stream nil t)
+		      '>>>)
+		     (t  '>>)))
 	      (t
 	       '>))))
 (define-token-operator >
@@ -852,6 +856,9 @@
     :infix `(>= ,left ,(gather-superiors '>= stream)))
 (define-token-operator >>
     :infix `(ash ,left (- ,(gather-superiors '>> stream))))
+
+(define-token-operator >>>
+    :infix `(ash ,left (- ,(gather-superiors '>>> stream))))
 
 (define-character-tokenization #\!
     #'(lambda (stream char)
