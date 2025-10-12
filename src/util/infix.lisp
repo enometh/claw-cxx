@@ -278,7 +278,7 @@
 
 (pushnew :claw-infix *features*)
 
-#+clisp
+#+(or clisp cmu)
 ;; clisp barfs if infix-reader is not defined. so define a dummy infix reader first
 (defun infix-reader (stream subchar arg)
   ;; Read either #I(...) or #I"..."
