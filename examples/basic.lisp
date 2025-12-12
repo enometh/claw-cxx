@@ -51,11 +51,8 @@
             (:key-down (:scancode scancode :key key :mod mod-value)
 	     (cond
 	       ((eql scancode :sdl-scancode-w) (format t "~a~%" "WALK"))
-	       #||
 	       ((eql scancode :sdl-scancode-s) (sdl3:show-cursor))
-	       ((eql scancode :sdl-scancode-h) (sdl2:hide-cursor)))
-	       ||#
-	       )
+	       ((eql scancode :sdl-scancode-h) (sdl3:hide-cursor)))
 	     (format t "Key sym: ~a, code: ~a, mod: ~a~%"
 		     key
 		     scancode

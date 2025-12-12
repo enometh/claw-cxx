@@ -84,6 +84,7 @@
 	       "video"
 	       "events"
 	       "keyboard"
+	       "mouse"
 	       (:file "cffi-callback-manager" :if-feature (:not :girlib))
 	       "properties"
 	       "timer"
