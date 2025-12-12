@@ -96,3 +96,18 @@
 (mk:oos :cl-claw-sdl3/sdl3 :load :compile-during-load t)
 
 
+(mk:defsystem :cl-claw-sdl3/examples
+  :source-pathname *cl-claw-sdl3-source-dir*
+  :binary-pathname *cl-claw-sdl3-binary-dir*
+  :source-extension "lisp"
+  :depends-on ("cl-claw-sdl3/sdl3" "cl-opengl" "cl-cairo2")
+  :components ((:module "examples"
+		:components
+		((:file "package")
+		 (:file "basic")
+		 (:file "renderer")
+		 (:file "cairo-gl")))))
+
+#+nil
+(mk:oos :cl-claw-sdl3/examples :load :compile-during-load t)
+
