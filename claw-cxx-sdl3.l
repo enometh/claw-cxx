@@ -28,6 +28,15 @@
 #+nil
 (setup-base-dir-defaults "/14/build/EXT-LISP/claw-cxx-sdl3/")
 
+;; alternate config
+#+nil
+(progn
+  (setq $base-dir (cl-user::sanitize-tilde-in-pathname "~/cl/extern/cl-claw-sdl3/bindings/"))
+  (setq $fasl-root (cl-user::binary-directory "~/cl/extern/cl-claw-sdl3/"))
+  (setq $includes-paths (list $base-dir))
+  (setq $system-file (merge-pathnames  (format nil "~(~A.system~)" $system-name)
+				       $base-dir)))
+
 ;;; to generate bindings
 #+nil
 (require 'claw-cxx)			;needs claw
@@ -52,17 +61,6 @@
 ;;; load defsystem
 ;;#+nil
 (load  $system-file)
-
-#||
-;; alternate config
-(defparameter claw-cxx-sdl3-user::$base-dir "/14/build/EXT-LISP/claw-cxx-sdl3/")
-(defparameter claw-cxx-sdl3-user::$fasl-root (merge-pathnames "fasl/"  $base-dir))
-(defparameter claw-cxx-sdl3-user::$system-file
-  (merge-pathnames (format nil "~(~A.system~)"
-			   claw-cxx-sdl3-user::$system-name)
-		   claw-cxx-sdl3-user::$base-dir))
-(load $system-file)
-||#
 
 ;; load foreign library
 (unless (cffi:find-foreign-library "libSDL3")
