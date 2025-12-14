@@ -227,7 +227,7 @@
 	     (tri-app:request-gl-fn app))
 	   (unwind-protect
 		(progn
-		  (setq win (create-window :title title :x x :y y :w w :flags sdl-window-flags))
+		  (setq win (create-window :title title :x x :y y :w w :h h :flags sdl-window-flags))
 		  (unwind-protect
 		       (progn
 			 (setq gl (gl-create-context win))
