@@ -123,10 +123,15 @@
       (typecase entity
         (claw.spec:foreign-pointer (if (and *recognize-strings* (%enveloped-char-p))
                                        :string
-                                       (list* :pointer
-                                              (entity->iffi-type (%enveloped-entity))
-                                              (when const-qualified-p
-                                                (list :const)))))
+                                       (let ((pointee (entity->iffi-type (%enveloped-entity))))
+                                         (if (and (listp pointee)
+                                                  (eq :function-prototype (first pointee)))
+                                             (list* :function-prototype-pointer
+                                                    (rest pointee))
+                                             (list* :pointer
+                                                    pointee
+                                                    (when const-qualified-p
+                                                      (list :const)))))))
         (claw.spec:foreign-reference `(:reference
                                        ,(entity->iffi-type
                                          (%enveloped-entity))
@@ -170,7 +175,10 @@
                                             (%enveloped-entity)
                                             :const-qualified t))
         (claw.spec:foreign-function (%lisp-name))
-        (claw.spec:foreign-function-prototype :void)
+        (claw.spec:foreign-function-prototype (list* :function-prototype
+                                                     (entity->iffi-type (claw.spec:foreign-function-result-type entity))
+                                                     (loop for param in (claw.spec:foreign-function-parameters entity)
+                                                           collect (entity->iffi-type (claw.spec:foreign-enveloped-entity param)))))
         (t (if const-qualified-p
                (list (%lisp-name) :const)
                (%lisp-name)))))))
@@ -203,6 +211,15 @@
           (:struct (list (%overtype :struct) (iffi->cffi-type type)))
           (:union (list (%overtype :union) (iffi->cffi-type type)))
           (:void (%overtype :void))
+          (:function-prototype (%overtype :void))
+          (:function-prototype-pointer (let ((overriden (%overtype :function-prototype-pointer)))
+                                         (if (eq overriden :function-prototype-pointer)
+                                             (%overtype :void)
+                                             (let ((result-type type)
+                                                   (param-types opts))
+                                               (list* overriden
+                                                      (iffi->cffi-type result-type)
+                                                      (mapcar #'iffi->cffi-type param-types))))))
           (otherwise (let ((unqualified-type (%unqualify iffi-type)))
                        (if (null (rest unqualified-type))
                            (%overtype (first unqualified-type))
