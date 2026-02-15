@@ -36,10 +36,28 @@
 (defvar +compiler+ #+nil "clang"
 	"gcc")
 
+;;madhu 250906 - atdoc magic-pathname, don't forget to set the
+;;variable to the value returned by fix-sbcl-homedir.
+#+sbcl
+(defun fix-sbcl-homedir (file)
+  (unless (pathnamep file) (setq file (pathname file)))
+  (let ((pd (pathname-directory file)))
+    (when (and (eql (car pd) :absolute)
+	       (eql (second pd) :home))
+      (let ((uhpd (pathname-directory (user-homedir-pathname))))
+	(assert (eql (car uhpd) :absolute))
+	(rplacd pd
+	      (append (copy-seq (cdr uhpd))
+		      (cddr pd))))))
+  file)
+
 (defun mk-adapter-cc (input-file &rest args &key output-file force
 		      &allow-other-keys)
   (format t "~%~S~%" `(mk-adapter-cc ,input-file ,@args))
   (assert (cl-user::suffixp ".so" output-file))
+  #+sbcl
+  (progn (setq input-file (fix-sbcl-homedir input-file))
+	 (setq output-file (fix-sbcl-homedir output-file)))
   (let* ((object-file (make-pathname :type "o" :defaults output-file))
 	 (cflags (getf args :cflags))
 	 (ldflags (getf args :ldflags)))
