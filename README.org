@@ -57,11 +57,10 @@ set up our user package, set up ~$conflicts~
 (in-package "CL-USER")
 (unless (cffi:find-foreign-library "libresect")
   (cffi:load-foreign-library "libresect.so"))
-(require 'claw-cxx))
-;; target
-(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
-;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf")
-(mk:oos :cl-claw-mupdf :load)
+(require 'claw-cxx)
+
+,#+nil
+(load (merge-pathnames "wrapper.lisp" *cl-claw-mupdf-source-dir*))
 
 ;; force the generatation of bindings gen/bindings/x86_64-pc-linux-gnu.lisp
 ;; and shared library files
@@ -69,6 +68,7 @@ set up our user package, set up ~$conflicts~
 (claw:generate-wrapper :claw-cxx-mupdf)
 
 ;; load generated bindings (generating them if not present)
+,#+nil
 (claw:load-wrapper :claw-cxx-mupdf)
 #+end_src
 
