@@ -6,7 +6,7 @@
 ;;;   Status: Experimental.  Do not redistribute
 ;;;   Copyright (C) 2023 Madhu.  All Rights Reserved.
 ;;;
-;;; Bindings
+;;; Bindings & Libraries
 ;;;
 (in-package "CL-USER")
 
@@ -15,32 +15,6 @@
 (defvar *cl-claw-mupdf-binary-dir* (binary-directory *cl-claw-mupdf-source-dir*))
 
 #+nil
-(claw.util:claw-cxx-defsystems :cl-claw-mupdf :dll-pathname "foo")
-
-(mk:defsystem :cl-claw-mupdf.bindings
-  :source-pathname *cl-claw-mupdf-source-dir*
-  :binary-pathname *cl-claw-mupdf-binary-dir*
-  :source-extension "lisp"
-  :depends-on ("uiop" "cffi" "claw-cxx/util")
-  :components ((:module "gen"
-		:components
-		((:module "bindings"
-		  :components
-		  ((:file "x86_64-pc-linux-gnu"
-		    :if-feature
-		    (:and :x86-64 :linux))
-		   (:file "i686-pc-linux-gnu"
-		    :if-feature (:and :x86 :linux))))))))
-
-#+nil
-(mk:oos :cl-claw-mupdf.bindings :load :compile-during-load t)
-
-;;;
-;;;
-;;; Library
-;;;
-;;; claw-cxx/util must be loaded before this defsystem file is loaded.
-
 (defparameter $mupdf-compiler-options
   (claw.util:make-compiler-options
    :default-cflags "-O0 -g3"
@@ -50,22 +24,43 @@
    :default-ldflags '("-Wl,-O1 -Wl,--as-needed")
    :link-libs '("mupdf" "m")))
 
-(mk:defsystem :cl-claw-mupdf.library
+#+nil ;macroexpand to obtain the following definitions
+(claw.util:claw-cxx-defsystems :cl-claw-mupdf
+			       :source-pathname *cl-claw-mupdf-source-dir*
+			       :binary-pathname *cl-claw-mupdf-binary-dir*
+			       :dll-pathname (merge-pathnames "lib/" *cl-claw-mupdf-source-dir*)
+			       :compiler-options #.$mupdf-compiler-options)
+
+
+(make:defsystem "cl-claw-mupdf.bindings"
   :source-pathname *cl-claw-mupdf-source-dir*
-  :binary-pathname (merge-pathnames "lib/" *cl-claw-mupdf-source-dir*)
+  :binary-pathname *cl-claw-mupdf-source-dir*
   :source-extension "lisp"
-  :depends-on ("uiop" "cffi" "claw-cxx/util")
-  :components ((:module "gen"
-		:components
-		((:module "lib"
-		  :components
-		  ((:file "adapter.x86_64-pc-linux-gnu"
-		    :source-extension "c"
-		    :if-feature (:and :x86-64 :linux)
-		    :language :claw-cxx-adapter
-		    :compiler-options
-		    #.$mupdf-compiler-options
-		    )))))))
+  :depends-on ("uiop" "cffi")
+  :components  ((:module "gen" :components
+		 ((:module "bindings" :components
+		   ((:file "x86_64-pc-linux-gnu" :if-feature (:and :x86-64 :linux))))))))
+
+#+nil
+(mk:oos :cl-claw-mupdf.bindings :load :compile-during-load t)
+
+(make:defsystem "cl-claw-mupdf.library"
+  :source-pathname *cl-claw-mupdf-source-dir*
+  :binary-pathname *cl-claw-mupdf-source-dir*
+  :source-extension  "lisp"
+  :depends-on ("uiop" "cffi")
+  :components
+  ((:module "gen" :components
+    ((:module "lib" :components
+      ((:file "adapter.x86_64-pc-linux-gnu"
+	:source-extension "c"
+	:if-feature (:and :x86-64 :linux)
+	:language :claw-cxx-adapter
+	:compiler-options (:cflags
+			   #.(format nil
+				     "-O0 -g3 -I ~A"
+				     (namestring (truename *cl-claw-mupdf-source-dir*)))
+			   :ldflags "-Wl,-O1 -Wl,--as-needed -l mupdf -l m"))))))))
 
 #+nil
 (mk:oos :cl-claw-mupdf.library :load :compile-during-load t)
