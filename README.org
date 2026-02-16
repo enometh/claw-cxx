@@ -24,9 +24,9 @@ gcc -Wl,--whole-archive /14/build/mupdf/build/debug/libmupdf.a \
 **** package.lisp:
 defines  "CL-CLAW-MUPDF" which is our "user" package
 **** cl-claw-mupdf.system
-defsystem to load bindings
-**** claw-cxx-mupdf.system
 defystem for the wrapper
+**** claw-cxx-mupdf.system
+defsystem to load bindings
 **** wrapper.lisp
 claw wrapper
 **** cl-claw-mupdf-user.system
@@ -59,9 +59,9 @@ set up our user package, set up ~$conflicts~
   (cffi:load-foreign-library "libresect.so"))
 (require 'claw-cxx))
 ;; target
-(load (merge-pathnames "claw-cxx-mupdf.system" *cl-claw-mupdf-source-dir*))
-;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
-(mk:oos :claw-cxx-mupdf :load)
+(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
+;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf")
+(mk:oos :cl-claw-mupdf :load)
 
 ;; force the generatation of bindings gen/bindings/x86_64-pc-linux-gnu.lisp
 ;; and shared library files
@@ -79,8 +79,8 @@ set up our user package, set up ~$conflicts~
 (require 'uiop)
 (require 'cffi)
 (load "~/cl/extern/claw-cxx/src/util/mk-defsystem-hooks.lisp")
-(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
-;; (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
+(load (merge-pathnames "claw-cxx-mupdf.system" *cl-claw-mupdf-source-dir*))
+;; (load "~/cl/extern/cl-claw-mupdf/claw-cxx-mupdf.system")
 (mk::find-language :claw-cxx-adapter)
 (setq CLAW-MK-DEFSYSTEM-ADAPTER::+compiler+ "gcc")
 (mk:oos :cl-claw-mupdf.bindings :load)
@@ -214,8 +214,8 @@ ldd /tmp/mupdf/libmupdf.so | grep image
 **** load it
 #+begin_src lisp
 (progn
+(load "~/cl/extern/cl-claw-mupdf/claw-cxx-mupdf.system")
 (load "~/cl/extern/claw-cxx/claw-cxx.system")
-(load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf.system")
 (load "~/cl/extern/cl-claw-mupdf/cl-claw-mupdf-user.system"))
 (mk:oos :cl-claw-mupdf-user :load)
 (in-package "CL-CLAW-MUPDF")
@@ -243,7 +243,7 @@ resect, the adapter generates functions for the definitions.
 ;;; load claw-mupdf-user
 ;madhu 250326
 (require 'claw-cxx/util)
-(load (merge-pathnames "cl-claw-mupdf.system" *cl-claw-mupdf-source-dir*))
+(load (merge-pathnames "claw-cxx-mupdf.system" *cl-claw-mupdf-source-dir*))
 (load (merge-pathnames "cl-claw-mupdf-user.system" *cl-claw-mupdf-source-dir*))
 (mk:oos :cl-claw-mupdf-user :load)
 (cl-claw-mupdf::extract-links "/dev/shm/1.pdf" :external-links-only-p t)
