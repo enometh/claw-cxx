@@ -1,16 +1,13 @@
-(cl:in-package "CL-CLAW-MUPDF")
+(cl:in-package "CL-USER")
 
-#+nil
+#+nil ;;macroexpand for hint
 (claw.wrapper:claw-cxx-defwrapper :claw-cxx-mupdf)
 
 (claw.wrapper:defwrapper (:claw-cxx-mupdf
-;;		  (:system :cl-claw-mupdf)
-		  (:base-path
-		   (mk::system-relative-pathname :claw-cxx-mupdf
-						 "gen"))
+		  (:base-path #.(merge-pathnames "gen/" *cl-claw-mupdf-source-dir*))
 		  (:headers "mymupdf.h")
 		  (:includes ;; "/usr/include/" "/14/build/mupdf/include"
-		   #.(namestring (mk::system-relative-pathname :claw-cxx-mupdf "")))
+		   #.(namestring (truename *cl-claw-mupdf-source-dir*)))
 		  (:targets
 		   ((:and :x86-64 :linux) "x86_64-pc-linux-gnu")
 		   #+nil
@@ -26,3 +23,6 @@
     :recognize-strings t
     :with-adapter (:dynamic :path "lib/adapter.c")
     )
+
+#+nil
+(claw:generate-wrapper :claw-cxx-mupdf)
