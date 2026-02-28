@@ -236,7 +236,10 @@ when using (defwrapper :recognize-strings t).
           (:function-prototype (%overtype :void))
           (:function-prototype-pointer (let ((overriden (%overtype :function-prototype-pointer)))
                                          (if (eq overriden :function-prototype-pointer)
+                                             ;;madhu try 261103 slb's fix
                                              (%overtype :pointer)
+                                             #+nil
+                                             (list :pointer (%overtype :void))
                                              (let ((result-type type)
                                                    (param-types opts))
                                                (list* overriden
