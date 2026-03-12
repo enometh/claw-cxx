@@ -108,6 +108,7 @@
            #:format-foreign-entity-c-name
 
            #:unwrap-foreign-entity-1
+           #:unwrap-foreign-entity-2
            #:unwrap-foreign-entity
            #:unalias-foreign-entity
            #:unqualify-foreign-entity))
@@ -699,6 +700,10 @@
 (defmethod format-foreign-entity-c-name ((this foreign-entity-parameter) &key const-qualified name)
   (format-default-c-name (format-full-foreign-entity-name this) const-qualified name))
 
+(defun unwrap-foreign-entity (entity)
+  (loop for current = entity then (foreign-enveloped-entity current)
+        while (foreign-envelope-p current)
+        finally (return current)))
 
 (defun unwrap-foreign-entity-1 (entity)
   (loop for current = entity then (foreign-enveloped-entity current)
@@ -708,7 +713,7 @@
         unless (foreign-envelope-p current)
           return current))
 
-(defun unwrap-foreign-entity (entity)
+(defun unwrap-foreign-entity-2 (entity)
   (loop for current = entity then unwrapped
         for unwrapped = (unwrap-foreign-entity-1 current)
         when (eq current unwrapped)
