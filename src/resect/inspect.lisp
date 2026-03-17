@@ -31,7 +31,7 @@
                                               ignore-definitions
                                               ignore-sources
                                               visibility
-                                              diagnostics-level)
+                                              (diagnostics-level :all))
   (declare (ignore inspector))
   (flet ((%stringify (value)
            (when value
