@@ -595,10 +595,11 @@
     ((and (not (nested-pointer-p type))
           (or
            ;; crazy, maybe a bug in libclang
-           (starts-with-subseq "const " (%resect:type-name type))
+	   (const-qualified-source-p (%resect:type-name type))
            ;; i don't like this at all
            ;; better to use lexer in resect
-           (and decl (starts-with-subseq "const " (%resect:declaration-source decl)))))
+           (and decl (const-qualified-source-p
+		      (%resect:declaration-source decl)))))
      (if (foreign-envelope-p entity)
          (claw.spec:rewrap-foreign-envelope entity
                                             (const (claw.spec:foreign-enveloped-entity entity)))
