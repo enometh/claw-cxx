@@ -440,6 +440,27 @@
   (declare (ignore category kind))
   (parse-declaration-by-kind (%resect:type-declaration type) type))
 
+#+WRONG
+(defmethod parse-declaration ((type (eql :enum-constant)) decl &key)
+  (let ((name (%resect:declaration-name decl))
+	(owner (parse-owner decl))
+	(value (if (%resect:enum-constant-unsigned-p decl)
+                   (%resect:enum-constant-unsigned-value decl)
+                   (%resect:enum-constant-value decl)))
+	(location (make-declaration-location decl))
+        (source (%resect:declaration-source decl)))
+    (multiple-value-bind (entity registeredp)
+	(register-entity 'foreign-constant
+			 :id name
+			 :name name
+			 :namespace (unless-empty
+				     (%resect:declaration-namespace decl))
+			 :source source
+			 :value value
+			 :location location)
+      (when (and registeredp owner)
+        (add-dependent owner entity))
+      (find-instantiated-type-from-owner entity))))
 
 ;;;
 ;;; TEMPLATE PARAMETER
