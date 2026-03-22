@@ -7,6 +7,8 @@
            #:ignore-every
            #:ignore-not
 
+           #:*keep-temp*
+
            #:declaration-name
            #:declaration-namespace
            #:declaration-location

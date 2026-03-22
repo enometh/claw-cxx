@@ -153,8 +153,8 @@
                                                             ignore-definitions
                                                             ignore-sources)
   (declare (ignore parser))
-  (with-temporary-directory (:pathname prepared-dir)
-    (uiop:with-temporary-file (:pathname uber-path :type "h")
+  (with-temporary-directory (:pathname prepared-dir :keep *keep-temp*)
+    (uiop:with-temporary-file (:pathname uber-path :type "h" :keep *keep-temp*)
       (write-uber-header headers uber-path defines)
       (multiple-value-bind (prepared-headers macros)
           (prepare-foreign-library uber-path

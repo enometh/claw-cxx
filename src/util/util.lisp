@@ -779,18 +779,22 @@
         string))))
 
 
-(defmacro with-temporary-directory ((&key pathname) &body body)
-  (with-gensyms (tmp-file tmp-dir)
-    `(uiop:with-temporary-file (:pathname ,tmp-file)
-       (let* ((,tmp-dir (merge-pathnames (format nil "~A.dir/" (pathname-name ,tmp-file))
-                                         (uiop:pathname-directory-pathname ,tmp-file)))
-              ,@(when pathname
-                  `((,pathname ,tmp-dir))))
-         (unwind-protect
-              (progn
-                (ensure-directories-exist ,tmp-dir)
-                ,@body)
-           (uiop:delete-directory-tree ,tmp-dir :validate (constantly t)))))))
+(defmacro with-temporary-directory ((&key pathname keep) &body body)
+  (alexandria:once-only (keep)
+    (with-gensyms (tmp-file tmp-dir)
+      `(uiop:with-temporary-file (:pathname ,tmp-file :keep ,keep)
+	 (let* ((,tmp-dir (merge-pathnames (format nil "~A.dir/" (pathname-name ,tmp-file))
+                                           (uiop:pathname-directory-pathname ,tmp-file)))
+		,@(when pathname
+                    `((,pathname ,tmp-dir))))
+           (unwind-protect
+		(progn
+                  (ensure-directories-exist ,tmp-dir)
+                  ,@body)
+	     (if ,keep
+		 (warn  "skip: ~S"
+			`(uiop:delete-directory-tree ,,tmp-dir :validate (constantly t)))
+		 (uiop:delete-directory-tree ,tmp-dir :validate (constantly t)))))))))
 
 
 
