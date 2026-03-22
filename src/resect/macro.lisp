@@ -10,13 +10,16 @@
   (declare (ignore this kind declaration)))
 
 
+(defvar *keep-temp* nil
+  "Keep temporary files")
+
 (defun prepare-macros-as-constants (uber-path
                                     includes
                                     frameworks
                                     target
                                     macros
                                     intrinsics)
-  (uiop:with-temporary-file (:pathname macro-helper-path :type "h")
+  (uiop:with-temporary-file (:pathname macro-helper-path :type "h" :keep *keep-temp*)
     (alexandria:with-output-to-file (out macro-helper-path :if-exists :supersede)
       (format out "#ifndef  __CLAW_MACRO~%#define __CLAW_MACRO 1~%")
       (format out "~%#include \"~A\"~%" (uiop:native-namestring uber-path))
