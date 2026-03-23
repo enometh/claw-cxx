@@ -33,6 +33,7 @@
                                frameworks
                                :c++
                                :c++20
+			       ;; :c++-17
                                target
                                intrinsics
                                :diagnostics nil
