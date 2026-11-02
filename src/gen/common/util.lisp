@@ -103,7 +103,7 @@
     ("void" :void)
     (t (c-name->lisp name :type))))
 
-(defvar *fix-recognition-of-pointer-to-string* :bohonguang-fix1)
+(defvar *fix-recognition-of-pointer-to-string* :bohonghuang-fix1)
 
 
 (defun entity->cffi-type (entity &key (qualify-records *qualify-records*) (use-overriden-types t))
@@ -119,9 +119,9 @@
 		      (:default (claw.spec:unwrap-foreign-entity entity))
 		      (:revert (%enveloped-entity))
 		      ;; bohonghuang commit c13d62827d
-		      (:bongohuang-fix1
+		      (:bohonghuang-fix1
 		       (claw.spec:unwrap-foreign-entity-1 entity))
-		      (:bongohuang-fix2
+		      (:bohonghuang-fix2
 		       (claw.spec:unwrap-foreign-entity-2 entity)))))
                (and (typep unwrapped 'claw.spec:foreign-primitive)
                     (string= "char" (claw.spec:foreign-entity-name unwrapped)))))
