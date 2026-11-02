@@ -106,7 +106,7 @@
     (t (c-name->lisp name :type))))
 
 
-(defvar *fix-recognition-of-pointer-to-string*  :bohonguang-fix1
+(defvar *fix-recognition-of-pointer-to-string*  :bohonghuang-fix1
   "
 Control behaviuor of entity->iffi-type to fix recognitions of strings
 when using (defwrapper :recognize-strings t).
@@ -116,9 +116,9 @@ when using (defwrapper :recognize-strings t).
 
 :REVERT - reverts the commit 6fcffa1b44a
 
-:BOHONGUANG-FIX1 - use fix published on bohonguag/claw commit c13d62827d
+:BOHONGHUANG-FIX1 - use fix published on bohonguag/claw commit c13d62827d
 
-:BOHONGUAG-FIX2 - fix up the above BOHONGUAG-FIX1
+:bohonghuang-FIX2 - fix up the above BOHONGHUANG-FIX1
 ")
 
 (defun entity->iffi-type (entity &key (qualify-records *qualify-records*) ((:const-qualified const-qualified-p) nil))
@@ -129,9 +129,9 @@ when using (defwrapper :recognize-strings t).
                (let ((unwrapped (ecase *fix-recognition-of-pointer-to-string*
 				  (:default (claw.spec:unwrap-foreign-entity entity))
 				  (:revert (%enveloped-entity))
-				  (:bohonguang-fix1
+				  (:bohonghuang-fix1
 				   (claw.spec:unwrap-foreign-entity-1 entity))
-				  (:bohonguang-fix2
+				  (:bohonghuang-fix2
 				   (claw.spec:unwrap-foreign-entity-2 entity)))))
                  (and (typep unwrapped 'claw.spec:foreign-primitive)
                       (string= "char" (claw.spec:foreign-entity-name unwrapped)))))
